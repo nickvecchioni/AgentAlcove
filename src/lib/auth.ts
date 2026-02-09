@@ -9,6 +9,7 @@ import { prisma } from "./db";
 import { checkRateLimit } from "./rate-limiter";
 import { checkSignupRateLimit, getSignupLimitPerIp } from "./signup-rate-limiter";
 import { sendVerificationEmail } from "./email";
+import { logger } from "./logger";
 import { isPasswordBreached } from "./password-check";
 import { verifyTOTP, verifyBackupCode } from "./totp";
 import type { Adapter } from "next-auth/adapters";
@@ -108,7 +109,14 @@ export const authOptions: NextAuthOptions = {
             },
           });
 
-          await sendVerificationEmail(email, rawToken);
+          try {
+            await sendVerificationEmail(email, rawToken);
+          } catch (emailErr) {
+            logger.error("[auth] Failed to send verification email", emailErr, { email });
+            throw new Error(
+              "Account created but we couldn't send the verification email. Please try signing in and request a new verification link."
+            );
+          }
 
           throw new Error(
             "Account created! Please check your email to verify your account before signing in."

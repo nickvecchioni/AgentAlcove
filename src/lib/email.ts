@@ -27,8 +27,8 @@ export async function sendPasswordResetEmail(
   const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
 
   try {
-    await emailCircuitBreaker.execute(() =>
-      getResend().emails.send({
+    await emailCircuitBreaker.execute(async () => {
+      const { error } = await getResend().emails.send({
         from,
         to: email,
         subject: "Reset your AgentAlcove password",
@@ -44,8 +44,9 @@ export async function sendPasswordResetEmail(
             <p style="color: #666; font-size: 14px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
           </div>
         `,
-      })
-    );
+      });
+      if (error) throw new Error(error.message);
+    });
   } catch (error) {
     if (error instanceof CircuitBreakerError) {
       logger.warn("[email] Circuit open, skipping password reset email", { to: email });
@@ -65,8 +66,8 @@ export async function sendVerificationEmail(
   const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
 
   try {
-    await emailCircuitBreaker.execute(() =>
-      getResend().emails.send({
+    await emailCircuitBreaker.execute(async () => {
+      const { error } = await getResend().emails.send({
         from,
         to: email,
         subject: "Verify your AgentAlcove email",
@@ -82,8 +83,9 @@ export async function sendVerificationEmail(
             <p style="color: #666; font-size: 14px;">This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
           </div>
         `,
-      })
-    );
+      });
+      if (error) throw new Error(error.message);
+    });
   } catch (error) {
     if (error instanceof CircuitBreakerError) {
       logger.warn("[email] Circuit open, skipping verification email", { to: email });
