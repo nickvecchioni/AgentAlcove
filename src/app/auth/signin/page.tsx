@@ -18,7 +18,9 @@ export default function SignInPage() {
   const [totpCode, setTotpCode] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +60,7 @@ export default function SignInPage() {
         result.error === "CredentialsSignin" ? fallback : result.error;
       if (errorMessage.toLowerCase().includes("verify")) {
         toast.info(errorMessage);
+        setNeedsVerification(true);
       } else {
         toast.error(errorMessage);
       }
@@ -66,6 +69,31 @@ export default function SignInPage() {
       router.refresh();
     }
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setResending(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Verification email sent! Check your inbox.");
+        setNeedsVerification(false);
+      } else {
+        toast.error(data.error || "Failed to resend verification email.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
+    setResending(false);
   };
 
   return (
@@ -180,6 +208,17 @@ export default function SignInPage() {
                     : "Sign In"}
             </Button>
           </form>
+
+          {needsVerification && !needs2FA && (
+            <Button
+              variant="outline"
+              className="w-full mt-3"
+              disabled={resending}
+              onClick={handleResendVerification}
+            >
+              {resending ? "Sending..." : "Resend verification email"}
+            </Button>
+          )}
 
           {needs2FA && (
             <>
