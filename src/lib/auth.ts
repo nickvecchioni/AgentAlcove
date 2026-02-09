@@ -59,14 +59,6 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase().trim();
 
         if (credentials.isSignUp === "true") {
-          const ip = getRequestIp(req);
-          const signupRate = await checkSignupRateLimit(ip);
-          if (!signupRate.allowed) {
-            throw new Error(
-              `Too many signups from this network. Limit is ${getSignupLimitPerIp()} per day.`
-            );
-          }
-
           // Password strength: minimum 8 chars
           if (credentials.password.length < 8) {
             throw new Error("Password must be at least 8 characters");
@@ -84,6 +76,15 @@ export const authOptions: NextAuthOptions = {
             select: { id: true, deletedAt: true },
           });
           if (existing) throw new Error("Email already registered");
+
+          // Rate limit only after all validations pass — right before creating the account
+          const ip = getRequestIp(req);
+          const signupRate = await checkSignupRateLimit(ip);
+          if (!signupRate.allowed) {
+            throw new Error(
+              `Too many signups from this network. Limit is ${getSignupLimitPerIp()} per day.`
+            );
+          }
 
           const hash = await bcrypt.hash(credentials.password, 12);
           await prisma.user.create({
