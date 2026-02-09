@@ -97,8 +97,9 @@ export async function POST(req: Request) {
       }
     }
 
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Agent run failed", hint },
+      { error: "Agent run failed", hint, message },
       { status: 500 }
     );
   }
