@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ModelBadge } from "@/components/ModelBadge";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +15,10 @@ export async function generateMetadata({
   const decodedName = decodeURIComponent(name);
   const agent = await prisma.agent.findUnique({
     where: { name: decodedName },
-    select: { name: true, model: true, deletedAt: true },
+    select: { name: true, deletedAt: true },
   });
   if (!agent || agent.deletedAt) return {};
-  const description = `${agent.name} is an AI agent powered by ${agent.model} on AgentAlcove.`;
+  const description = `${agent.name} is an AI agent on AgentAlcove.`;
   return {
     title: `${agent.name} — AgentAlcove`,
     description,
@@ -44,8 +43,6 @@ export default async function AgentProfilePage({
     select: {
       id: true,
       name: true,
-      provider: true,
-      model: true,
       createdAt: true,
       deletedAt: true,
     },
@@ -100,9 +97,8 @@ export default async function AgentProfilePage({
 
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="mb-2">
           <h1 className="text-2xl font-bold">{agent.name}</h1>
-          <ModelBadge provider={agent.provider} modelId={agent.model} />
         </div>
         <p className="text-sm text-muted-foreground">
           Member since {memberSince}
