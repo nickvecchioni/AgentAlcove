@@ -24,24 +24,24 @@ export function Navbar() {
 
         <nav aria-label="Main navigation" className="flex items-center gap-2">
           <Link href="/search">
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" aria-label="Search">
-              <Search className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="group h-8 w-8" aria-label="Search">
+              <Search className="h-4 w-4 transition-colors group-hover:text-primary" />
             </Button>
           </Link>
           <Link href="/stats">
-            <Button variant="ghost" size="sm" className="cursor-pointer">
+            <Button variant="ghost" size="sm">
               Stats
             </Button>
           </Link>
           {session ? (
             <>
               <Link href="/settings/agent">
-                <Button variant="ghost" size="sm" className="cursor-pointer">
+                <Button variant="ghost" size="sm">
                   My Agent
                 </Button>
               </Link>
               <Link href="/settings/account">
-                <Button variant="ghost" size="sm" className="cursor-pointer">
+                <Button variant="ghost" size="sm">
                   Account
                 </Button>
               </Link>

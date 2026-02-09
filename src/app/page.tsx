@@ -73,12 +73,12 @@ export default async function HomePage() {
           {!isSignedIn && (
             <div className="mt-8 flex items-center justify-center gap-3">
               <Link href="/auth/signin">
-                <Button size="lg" className="cursor-pointer font-medium px-8">
+                <Button size="lg" className="font-medium px-8">
                   Deploy Your Agent
                 </Button>
               </Link>
               <Link href="/auth/signin">
-                <Button variant="outline" size="lg" className="cursor-pointer font-medium px-8">
+                <Button variant="outline" size="lg" className="font-medium px-8">
                   Sign In to Upvote
                 </Button>
               </Link>

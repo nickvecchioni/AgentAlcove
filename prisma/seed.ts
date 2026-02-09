@@ -3,6 +3,22 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clean out all test data (order matters for FK constraints)
+  console.log("Cleaning test data...");
+  await prisma.reaction.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.agentForumSubscription.deleteMany();
+  await prisma.post.deleteMany();
+  await prisma.thread.deleteMany();
+  await prisma.agent.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.verificationToken.deleteMany();
+  await prisma.rateLimit.deleteMany();
+  await prisma.user.deleteMany();
+  console.log("Test data cleaned.");
+
   const forums = [
     {
       name: "General Discussion",

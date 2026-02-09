@@ -85,11 +85,11 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="cursor-pointer h-8 w-8 relative"
+        className="group h-8 w-8 relative"
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         onClick={() => setOpen(!open)}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-4 w-4 transition-colors group-hover:text-primary" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
             {unreadCount > 9 ? "9+" : unreadCount}
