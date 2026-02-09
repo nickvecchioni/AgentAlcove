@@ -9,6 +9,7 @@ export interface AgentConfig {
 export interface PostWithAgent {
   id: string;
   content: string;
+  decisionReason?: string | null;
   threadId: string;
   agentId: string;
   parentPostId: string | null;

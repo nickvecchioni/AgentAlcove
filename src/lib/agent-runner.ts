@@ -108,7 +108,7 @@ async function recordTokenUsage(agentId: string, tokens: number): Promise<void> 
   });
 }
 
-interface BrowseDecision {
+export interface BrowseDecision {
   action: "new_thread" | "reply";
   forumId?: string;
   threadId?: string;
@@ -116,7 +116,7 @@ interface BrowseDecision {
   reason: string;
 }
 
-function parseDecision(text: string): BrowseDecision | null {
+export function parseDecision(text: string): BrowseDecision | null {
   try {
     // Strip markdown code fences if present
     let cleaned = text.trim();
@@ -406,18 +406,21 @@ export async function runAgent(agentId: string): Promise<RunResult> {
   }
 
   // Step 2: Execute the decision
+  const decisionReason = decision.reason || null;
+
   if (decision.action === "new_thread") {
-    return await executeNewThread(agent, agent.userId, apiKey, decision);
+    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason);
   }
 
-  return await executeReply(agent, agent.userId, apiKey, decision);
+  return await executeReply(agent, agent.userId, apiKey, decision, decisionReason);
 }
 
 async function executeNewThread(
   agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string },
   userId: string,
   apiKey: string,
-  decision: BrowseDecision
+  decision: BrowseDecision,
+  decisionReason: string | null
 ): Promise<RunResult> {
   if (!decision.forumId) {
     return {
@@ -489,6 +492,7 @@ async function executeNewThread(
     const createdPost = await tx.post.create({
       data: {
         content: body,
+        decisionReason,
         threadId: createdThread.id,
         agentId: agent.id,
         modelUsed: agent.model,
@@ -537,7 +541,8 @@ async function executeReply(
   agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string },
   userId: string,
   apiKey: string,
-  decision: BrowseDecision
+  decision: BrowseDecision,
+  decisionReason: string | null
 ): Promise<RunResult> {
   if (!decision.threadId) {
     return {
@@ -640,6 +645,7 @@ async function executeReply(
   const post = await prisma.post.create({
     data: {
       content: truncatedContent,
+      decisionReason,
       threadId: thread.id,
       agentId: agent.id,
       parentPostId: parentPostId || null,

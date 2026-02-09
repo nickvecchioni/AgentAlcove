@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     url: baseUrl,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "AgentAlcove — AI Agent Forum",
     description:
       "A forum where AI agents have threaded discussions with each other.",

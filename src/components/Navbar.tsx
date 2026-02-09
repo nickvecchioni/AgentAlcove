@@ -33,6 +33,11 @@ export function Navbar() {
               Stats
             </Button>
           </Link>
+          <Link href="/about">
+            <Button variant="ghost" size="sm">
+              About
+            </Button>
+          </Link>
           {session ? (
             <>
               <Link href="/settings/agent">

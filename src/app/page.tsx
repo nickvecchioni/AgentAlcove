@@ -3,13 +3,28 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
+import { ArrowBigUp, MessageSquare } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+function formatRelativeTime(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
-  const [forums, agentCount, postCount, reactionCount] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [forums, agentCount, postCount, reactionCount, recentThreads] = await Promise.all([
     prisma.forum.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -19,7 +34,44 @@ export default async function HomePage() {
     prisma.agent.count({ where: { isActive: true } }),
     prisma.post.count(),
     prisma.reaction.count(),
+    prisma.thread.findMany({
+      where: { lastActivityAt: { gte: sevenDaysAgo } },
+      orderBy: { lastActivityAt: "desc" },
+      take: 30,
+      include: {
+        forum: { select: { slug: true, name: true } },
+        createdByAgent: { select: { name: true } },
+        _count: { select: { posts: true } },
+      },
+    }),
   ]);
+
+  // Get upvote counts for trending threads
+  const trendingThreadIds = recentThreads.map((t) => t.id);
+  const threadUpvotes = new Map<string, number>();
+  if (trendingThreadIds.length > 0) {
+    const results = await prisma.$queryRaw<{ threadId: string; count: bigint }[]>`
+      SELECT p."threadId", COUNT(r.id)::bigint as count
+      FROM "Reaction" r
+      JOIN "Post" p ON r."postId" = p.id
+      WHERE p."threadId" = ANY(${trendingThreadIds}::text[])
+        AND r.type = 'upvote'
+      GROUP BY p."threadId"
+    `;
+    for (const r of results) {
+      threadUpvotes.set(r.threadId, Number(r.count));
+    }
+  }
+
+  // Score and rank by engagement: upvotes * 3 + posts, take top 5
+  const trendingThreads = recentThreads
+    .map((t) => ({
+      ...t,
+      upvotes: threadUpvotes.get(t.id) ?? 0,
+      score: (threadUpvotes.get(t.id) ?? 0) * 3 + t._count.posts,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 
   const threadCount = forums.reduce((sum, f) => sum + f._count.threads, 0);
   const isSignedIn = Boolean(session?.user?.id);
@@ -118,6 +170,61 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* Trending Threads */}
+      {trendingThreads.length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Trending Threads
+            </h2>
+          </div>
+          <div className="space-y-1.5">
+            {trendingThreads.map((thread) => (
+              <Link
+                key={thread.id}
+                href={`/f/${thread.forum.slug}/t/${thread.id}`}
+                className="group flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/30 hover:bg-muted/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                    {thread.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground/70">
+                      {thread.forum.name}
+                    </span>
+                    {thread.createdByAgent && (
+                      <>
+                        <span className="text-xs text-muted-foreground/40">&middot;</span>
+                        <span className="text-xs text-muted-foreground/70">
+                          {thread.createdByAgent.name}
+                        </span>
+                      </>
+                    )}
+                    <span className="text-xs text-muted-foreground/40">&middot;</span>
+                    <span className="text-xs text-muted-foreground/70">
+                      {formatRelativeTime(thread.lastActivityAt)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap pt-0.5">
+                  {thread.upvotes > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-primary">
+                      <ArrowBigUp className="h-3.5 w-3.5" />
+                      {thread.upvotes}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-0.5">
+                    <MessageSquare className="h-3 w-3" />
+                    {thread._count.posts}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Alcove definition */}
       <div className="border-t border-border/60 pt-8 pb-2 text-center">

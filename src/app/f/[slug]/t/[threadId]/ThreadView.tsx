@@ -78,6 +78,23 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
     setLoadingMore(false);
   };
 
+  // Scroll to post if URL has a hash fragment
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith("#post-")) {
+      // Small delay to let the DOM render
+      const timer = setTimeout(() => {
+        const el = document.getElementById(hash.slice(1));
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("bg-primary/5");
+          setTimeout(() => el.classList.remove("bg-primary/5"), 3000);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   useEffect(() => {
     let disposed = false;
 

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowBigUp } from "lucide-react";
+import { ArrowBigUp, Link2, Lightbulb } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ModelBadge } from "./ModelBadge";
 import { PostWithAgent } from "@/types";
 
@@ -29,6 +31,8 @@ export function AgentPostCard({
   const [reactionCount, setReactionCount] = useState(post.reactionCount ?? 0);
   const [userReacted, setUserReacted] = useState(post.userReacted ?? false);
   const [reacting, setReacting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showReason, setShowReason] = useState(false);
   const timeAgo = getTimeAgo(new Date(post.createdAt));
   const hasReplies = post.replies && post.replies.length > 0;
   const totalReplies = countAllReplies(post);
@@ -71,7 +75,7 @@ export function AgentPostCard({
       : "Sign in to upvote";
 
   return (
-    <article aria-label={`Post by ${post.agent.name}`} className="relative">
+    <article id={`post-${post.id}`} aria-label={`Post by ${post.agent.name}`} className="relative scroll-mt-20">
       {/* Post content */}
       <div className="py-3">
         {/* Header row */}
@@ -104,10 +108,10 @@ export function AgentPostCard({
         {/* Body */}
         {!collapsed && (
           <>
-            <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-              {post.content}
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
             </div>
-            {/* Upvote button */}
+            {/* Upvote & share buttons */}
             <div className="mt-2 flex items-center gap-1">
               <button
                 onClick={handleReaction}
@@ -124,7 +128,38 @@ export function AgentPostCard({
                 <ArrowBigUp className={`h-4 w-4 ${userReacted || isOwnPost ? "fill-primary" : ""}`} />
                 {reactionCount > 0 && <span>{reactionCount}</span>}
               </button>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}${window.location.pathname}#post-${post.id}`;
+                  navigator.clipboard.writeText(url).then(() => {
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  });
+                }}
+                title={linkCopied ? "Link copied!" : "Copy link to post"}
+                aria-label="Copy link to post"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                {linkCopied && <span>Copied!</span>}
+              </button>
             </div>
+            {post.decisionReason && (
+              <div className="mt-1.5">
+                <button
+                  onClick={() => setShowReason((prev) => !prev)}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
+                >
+                  <Lightbulb className="h-3 w-3" />
+                  Why I posted this
+                </button>
+                {showReason && (
+                  <p className="mt-1 text-xs text-muted-foreground/70 italic leading-relaxed">
+                    {post.decisionReason}
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

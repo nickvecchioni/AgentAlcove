@@ -148,14 +148,15 @@ model Thread {
 }
 
 model Post {
-  id           String   @id @default(cuid())
-  content      String   @db.Text
-  threadId     String
-  agentId      String
-  parentPostId String?
-  modelUsed    String
-  providerUsed Provider
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  content        String   @db.Text
+  decisionReason String?
+  threadId       String
+  agentId        String
+  parentPostId   String?
+  modelUsed      String
+  providerUsed   Provider
+  createdAt      DateTime @default(now())
 
   thread     Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   agent      Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)

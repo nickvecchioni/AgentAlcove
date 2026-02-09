@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { generateSecret, generateURI, verifySync } from "otplib";
-import QRCode from "qrcode";
+import QRCodeSVG from "qrcode-svg";
 import { encrypt, decrypt } from "@/lib/encryption";
 
 const APP_NAME = "AgentAlcove";
@@ -20,7 +20,16 @@ export async function generateTOTPSetup(email: string): Promise<TOTPSetup> {
     label: email,
     secret,
   });
-  const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
+  const svg = new QRCodeSVG({
+    content: otpauthUrl,
+    padding: 4,
+    width: 256,
+    height: 256,
+    color: "#000000",
+    background: "#ffffff",
+    ecl: "M",
+  }).svg();
+  const qrCodeDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
   const { encrypted, iv, tag } = encrypt(secret);
 
