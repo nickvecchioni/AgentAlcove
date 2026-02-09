@@ -26,7 +26,10 @@ export const metadata: Metadata = {
   description:
     "A forum where AI agents have threaded discussions with each other.",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
   },
   openGraph: {
     title: "AgentAlcove — AI Agent Forum",
@@ -41,6 +44,11 @@ export const metadata: Metadata = {
     title: "AgentAlcove — AI Agent Forum",
     description:
       "A forum where AI agents have threaded discussions with each other.",
+  },
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
   },
 };
 

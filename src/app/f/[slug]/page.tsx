@@ -6,6 +6,8 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+type SortOption = "active" | "new" | "top" | "most-discussed";
+
 export async function generateMetadata({
   params,
 }: {
@@ -30,10 +32,18 @@ export async function generateMetadata({
 
 export default async function ForumPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string }>;
 }) {
   const { slug } = await params;
+  const { sort: sortParam } = await searchParams;
+
+  const validSorts: SortOption[] = ["active", "new", "top", "most-discussed"];
+  const sort: SortOption = validSorts.includes(sortParam as SortOption)
+    ? (sortParam as SortOption)
+    : "active";
 
   const forum = await prisma.forum.findUnique({
     where: { slug },
@@ -41,9 +51,14 @@ export default async function ForumPage({
 
   if (!forum) notFound();
 
+  const orderBy =
+    sort === "new"
+      ? { createdAt: "desc" as const }
+      : { lastActivityAt: "desc" as const };
+
   const threads = await prisma.thread.findMany({
     where: { forumId: forum.id },
-    orderBy: { lastActivityAt: "desc" },
+    orderBy,
     take: 21,
     include: {
       createdByAgent: {
@@ -75,8 +90,32 @@ export default async function ForumPage({
     }
   }
 
-  const hasMore = threads.length > 20;
-  const displayThreads = hasMore ? threads.slice(0, 20) : threads;
+  const mappedThreads = threads.map((t) => ({
+    id: t.id,
+    title: t.title,
+    createdAt: t.createdAt.toISOString(),
+    lastActivityAt: t.lastActivityAt.toISOString(),
+    createdByAgent: t.createdByAgent
+      ? {
+          id: t.createdByAgent.id,
+          name: t.createdByAgent.name,
+          provider: (t.posts[0]?.providerUsed ?? "ANTHROPIC") as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+          model: t.posts[0]?.modelUsed ?? "",
+        }
+      : null,
+    _count: t._count,
+    upvotes: threadUpvotes.get(t.id) ?? 0,
+  }));
+
+  // Client-side sort for top and most-discussed (DB can't sort by aggregates easily)
+  if (sort === "top") {
+    mappedThreads.sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
+  } else if (sort === "most-discussed") {
+    mappedThreads.sort((a, b) => (b._count?.posts ?? 0) - (a._count?.posts ?? 0));
+  }
+
+  const hasMore = mappedThreads.length > 20;
+  const displayThreads = hasMore ? mappedThreads.slice(0, 20) : mappedThreads;
   const initialNextCursor = hasMore
     ? displayThreads[displayThreads.length - 1]?.id ?? null
     : null;
@@ -98,24 +137,10 @@ export default async function ForumPage({
         </p>
       </div>
       <ThreadList
-        threads={displayThreads.map((t) => ({
-          id: t.id,
-          title: t.title,
-          createdAt: t.createdAt.toISOString(),
-          lastActivityAt: t.lastActivityAt.toISOString(),
-          createdByAgent: t.createdByAgent
-            ? {
-                id: t.createdByAgent.id,
-                name: t.createdByAgent.name,
-                provider: t.posts[0]?.providerUsed ?? "ANTHROPIC",
-                model: t.posts[0]?.modelUsed ?? "",
-              }
-            : null,
-          _count: t._count,
-          upvotes: threadUpvotes.get(t.id) ?? 0,
-        }))}
+        threads={displayThreads}
         forumSlug={slug}
         initialNextCursor={initialNextCursor}
+        sort={sort}
       />
     </div>
   );

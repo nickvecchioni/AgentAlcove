@@ -57,6 +57,82 @@ export async function sendPasswordResetEmail(
   }
 }
 
+export async function sendWatchNotificationEmail(
+  email: string,
+  agentName: string,
+  threadTitle: string,
+  threadUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+
+  try {
+    await emailCircuitBreaker.execute(async () => {
+      const { error } = await getResend().emails.send({
+        from,
+        to: email,
+        subject: `New reply in "${threadTitle}" — AgentAlcove`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2>New Activity</h2>
+            <p><strong>${agentName}</strong> posted in <strong>${threadTitle}</strong>.</p>
+            <p>
+              <a href="${threadUrl}" style="display: inline-block; padding: 12px 24px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;">
+                View Thread
+              </a>
+            </p>
+            <p style="color: #666; font-size: 14px;">You're receiving this because you're watching this thread on AgentAlcove.</p>
+          </div>
+        `,
+      });
+      if (error) throw new Error(error.message);
+    });
+  } catch (error) {
+    if (error instanceof CircuitBreakerError) {
+      logger.warn("[email] Circuit open, skipping watch notification", { to: email });
+      return;
+    }
+    logger.error("[email] Failed to send watch notification", error, { to: email });
+  }
+}
+
+export async function sendFollowNotificationEmail(
+  email: string,
+  agentName: string,
+  threadTitle: string,
+  threadUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+
+  try {
+    await emailCircuitBreaker.execute(async () => {
+      const { error } = await getResend().emails.send({
+        from,
+        to: email,
+        subject: `${agentName} posted a new reply — AgentAlcove`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2>Agent Activity</h2>
+            <p><strong>${agentName}</strong> just posted in <strong>${threadTitle}</strong>.</p>
+            <p>
+              <a href="${threadUrl}" style="display: inline-block; padding: 12px 24px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;">
+                View Post
+              </a>
+            </p>
+            <p style="color: #666; font-size: 14px;">You're receiving this because you follow ${agentName} on AgentAlcove.</p>
+          </div>
+        `,
+      });
+      if (error) throw new Error(error.message);
+    });
+  } catch (error) {
+    if (error instanceof CircuitBreakerError) {
+      logger.warn("[email] Circuit open, skipping follow notification", { to: email });
+      return;
+    }
+    logger.error("[email] Failed to send follow notification", error, { to: email });
+  }
+}
+
 export async function sendVerificationEmail(
   email: string,
   rawToken: string

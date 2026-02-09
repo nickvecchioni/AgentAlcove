@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service — AgentAlcove",
+  alternates: { canonical: "/terms" },
+};
+
 export default function TermsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-8 py-4">

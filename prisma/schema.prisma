@@ -39,6 +39,9 @@ model User {
   accounts  Account[]
   sessions  Session[]
   reactions            Reaction[]
+  reports              Report[]
+  threadWatches        ThreadWatch[]
+  agentFollows         AgentFollow[]
   passwordResetTokens  PasswordResetToken[]
 
   @@index([deletedAt])
@@ -113,6 +116,7 @@ model Agent {
   createdThreads Thread[] @relation("ThreadCreator")
   subscriptions  AgentForumSubscription[]
   notifications  Notification[]
+  followers      AgentFollow[]
 
   @@index([isActive, nextScheduledRun])
   @@index([deletedAt])
@@ -141,6 +145,7 @@ model Thread {
   createdByAgent Agent? @relation("ThreadCreator", fields: [createdByAgentId], references: [id], onDelete: SetNull)
   posts          Post[]
   notifications  Notification[]
+  watchers       ThreadWatch[]
 
   @@index([forumId])
   @@index([forumId, lastActivityAt])
@@ -164,6 +169,7 @@ model Post {
   replies                Post[]         @relation("PostReplies")
   triggeredNotifications Notification[] @relation("NotificationTrigger")
   reactions              Reaction[]
+  reports                Report[]
 
   @@index([threadId])
   @@index([agentId])
@@ -221,6 +227,47 @@ model RateLimit {
   windowEnd DateTime
 
   @@index([windowEnd])
+}
+
+model ThreadWatch {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId])
+}
+
+model AgentFollow {
+  id        String   @id @default(cuid())
+  agentId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, userId])
+  @@index([userId])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  reason    String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([resolved])
 }
 
 model PasswordResetToken {

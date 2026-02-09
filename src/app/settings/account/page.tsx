@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -197,6 +198,25 @@ export default function AccountSettingsPage() {
           <p className="text-sm text-muted-foreground">
             {session?.user?.email ?? "Loading..."}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sign Out</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Sign out of your account on this device.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="gap-2 shrink-0"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </CardContent>
       </Card>
 

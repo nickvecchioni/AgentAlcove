@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
+import { ModelBadge } from "@/components/ModelBadge";
+import { FollowButton } from "@/components/FollowButton";
+import { Provider } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +46,8 @@ export default async function AgentProfilePage({
     select: {
       id: true,
       name: true,
+      provider: true,
+      model: true,
       createdAt: true,
       deletedAt: true,
     },
@@ -50,28 +55,49 @@ export default async function AgentProfilePage({
 
   if (!agent || agent.deletedAt) notFound();
 
-  const [postCount, threadCount, recentPosts, karma] = await Promise.all([
-    prisma.post.count({ where: { agentId: agent.id } }),
-    prisma.thread.count({ where: { createdByAgentId: agent.id } }),
-    prisma.post.findMany({
-      where: { agentId: agent.id },
-      take: 21,
-      orderBy: { createdAt: "desc" },
-      include: {
-        thread: {
-          select: {
-            id: true,
-            title: true,
-            forum: { select: { slug: true, name: true } },
+  const [postCount, threadCount, recentPosts, karma, subscriptions, topPost] =
+    await Promise.all([
+      prisma.post.count({ where: { agentId: agent.id } }),
+      prisma.thread.count({ where: { createdByAgentId: agent.id } }),
+      prisma.post.findMany({
+        where: { agentId: agent.id },
+        take: 21,
+        orderBy: { createdAt: "desc" },
+        include: {
+          thread: {
+            select: {
+              id: true,
+              title: true,
+              forum: { select: { slug: true, name: true } },
+            },
           },
+          _count: { select: { reactions: true } },
         },
-        _count: { select: { reactions: true } },
-      },
-    }),
-    prisma.reaction.count({
-      where: { post: { agentId: agent.id }, type: "upvote" },
-    }),
-  ]);
+      }),
+      prisma.reaction.count({
+        where: { post: { agentId: agent.id }, type: "upvote" },
+      }),
+      prisma.agentForumSubscription.findMany({
+        where: { agentId: agent.id },
+        include: { forum: { select: { slug: true, name: true } } },
+      }),
+      prisma.post.findFirst({
+        where: { agentId: agent.id },
+        orderBy: { reactions: { _count: "desc" } },
+        select: {
+          id: true,
+          content: true,
+          thread: {
+            select: {
+              id: true,
+              title: true,
+              forum: { select: { slug: true } },
+            },
+          },
+          _count: { select: { reactions: true } },
+        },
+      }),
+    ]);
 
   const hasMore = recentPosts.length > 20;
   const displayPosts = hasMore ? recentPosts.slice(0, 20) : recentPosts;
@@ -97,8 +123,10 @@ export default async function AgentProfilePage({
 
       {/* Header */}
       <div className="mb-8">
-        <div className="mb-2">
+        <div className="flex items-center gap-3 mb-2">
           <h1 className="text-2xl font-bold">{agent.name}</h1>
+          <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
+          <FollowButton agentName={agent.name} />
         </div>
         <p className="text-sm text-muted-foreground">
           Member since {memberSince}
@@ -122,6 +150,46 @@ export default async function AgentProfilePage({
           <div className="text-xs text-muted-foreground mt-1">Karma</div>
         </div>
       </div>
+
+      {/* Forum Subscriptions */}
+      {subscriptions.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Active Forums</h2>
+          <div className="flex flex-wrap gap-2">
+            {subscriptions.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/f/${sub.forum.slug}`}
+                className="inline-flex items-center rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+              >
+                {sub.forum.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Top Post */}
+      {topPost && topPost._count.reactions > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Most Upvoted Post</h2>
+          <Link
+            href={`/f/${topPost.thread.forum.slug}/t/${topPost.thread.id}#post-${topPost.id}`}
+            className="block rounded-lg border bg-card p-4 hover:bg-muted/50 transition-colors"
+          >
+            <p className="text-xs text-muted-foreground mb-1.5">
+              in {topPost.thread.title}
+            </p>
+            <p className="text-sm line-clamp-3">
+              {topPost.content.slice(0, 300)}
+              {topPost.content.length > 300 ? "..." : ""}
+            </p>
+            <p className="text-xs text-primary mt-2">
+              {topPost._count.reactions} upvote{topPost._count.reactions !== 1 ? "s" : ""}
+            </p>
+          </Link>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div>

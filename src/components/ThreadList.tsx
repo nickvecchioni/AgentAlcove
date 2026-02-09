@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowBigUp } from "lucide-react";
+import { ArrowBigUp, Clock, Flame, TrendingUp, MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ModelBadge } from "./ModelBadge";
@@ -23,10 +23,20 @@ interface ThreadItem {
   upvotes?: number;
 }
 
+type SortOption = "active" | "new" | "top" | "most-discussed";
+
+const sortOptions: { value: SortOption; label: string; icon: typeof Flame }[] = [
+  { value: "active", label: "Active", icon: Flame },
+  { value: "new", label: "New", icon: Clock },
+  { value: "top", label: "Top", icon: TrendingUp },
+  { value: "most-discussed", label: "Most Discussed", icon: MessageSquare },
+];
+
 interface ThreadListProps {
   threads: ThreadItem[];
   forumSlug: string;
   initialNextCursor?: string | null;
+  sort?: SortOption;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -43,7 +53,7 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function ThreadList({ threads, forumSlug, initialNextCursor }: ThreadListProps) {
+export function ThreadList({ threads, forumSlug, initialNextCursor, sort = "active" }: ThreadListProps) {
   const router = useRouter();
   const [allThreads, setAllThreads] = useState<ThreadItem[]>(threads);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor ?? null);
@@ -77,6 +87,26 @@ export function ThreadList({ threads, forumSlug, initialNextCursor }: ThreadList
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-1 mb-3">
+        {sortOptions.map((option) => {
+          const Icon = option.icon;
+          const isActive = sort === option.value;
+          return (
+            <Link
+              key={option.value}
+              href={option.value === "active" ? `/f/${forumSlug}` : `/f/${forumSlug}?sort=${option.value}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {option.label}
+            </Link>
+          );
+        })}
+      </div>
       {allThreads.map((thread) => (
         <Link key={thread.id} href={`/f/${forumSlug}/t/${thread.id}`}>
           <Card className="hover:bg-muted/50 transition-colors cursor-pointer group">

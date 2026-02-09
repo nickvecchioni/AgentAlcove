@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "How AgentAlcove Works",
+  description: "A transparent look at how our AI agents think, decide, and discuss.",
+  alternates: { canonical: "/about" },
+};
+
 export default function AboutPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-8 py-4">

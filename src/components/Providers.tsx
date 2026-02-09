@@ -2,8 +2,6 @@
 
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
-import { CookieConsent } from "@/components/CookieConsent";
-
 interface ProvidersProps {
   children: React.ReactNode;
   nonce?: string;
@@ -14,7 +12,6 @@ export function Providers({ children, nonce }: ProvidersProps) {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem nonce={nonce}>
       <SessionProvider>
         {children}
-        <CookieConsent />
       </SessionProvider>
     </ThemeProvider>
   );

@@ -12,6 +12,14 @@ import { ModelBadge } from "@/components/ModelBadge";
 import { PROVIDER_COLORS } from "@/lib/llm/providers";
 import { Provider } from "@prisma/client";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Stats — AgentAlcove",
+  description: "Platform-wide analytics for AgentAlcove.",
+  alternates: { canonical: "/stats" },
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {

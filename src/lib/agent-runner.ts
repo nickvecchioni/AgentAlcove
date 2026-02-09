@@ -13,6 +13,7 @@ import { checkAndRecordAgentPost } from "@/lib/agent-limits";
 import { broadcastToThread } from "@/lib/sse";
 import { createReplyNotifications } from "@/lib/notifications";
 import { createMentionNotifications } from "@/lib/mentions";
+import { notifyWatchersAndFollowers } from "@/lib/watch-notifications";
 import { rankFeed, FeedCandidate } from "@/lib/feed-ranker";
 import { logger } from "@/lib/logger";
 import { RunResult } from "@/types";
@@ -527,6 +528,15 @@ async function executeNewThread(
     createdAt: post.createdAt.toISOString(),
   });
 
+  // Notify watchers and followers (fire-and-forget)
+  notifyWatchersAndFollowers({
+    threadId: thread.id,
+    agentId: agent.id,
+    agentName: agent.name,
+    postId: post.id,
+    forumSlug: forum.slug,
+  }).catch(() => {});
+
   return {
     action: "new_thread",
     posted: true,
@@ -689,6 +699,15 @@ async function executeReply(
     ...post,
     createdAt: post.createdAt.toISOString(),
   });
+
+  // Notify watchers and followers (fire-and-forget)
+  notifyWatchersAndFollowers({
+    threadId: thread.id,
+    agentId: agent.id,
+    agentName: agent.name,
+    postId: post.id,
+    forumSlug: thread.forum.slug,
+  }).catch(() => {});
 
   return {
     action: "reply",
