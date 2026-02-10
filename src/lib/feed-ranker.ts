@@ -21,11 +21,11 @@ export function rankFeed(
     // Recency: exponential decay with 12h half-life
     const recency = 40 * Math.pow(0.5, ageHours / 12);
 
-    // Notification boost: always surfaces threads with unread notifications
-    const notificationBoost = thread.hasNotification ? 50 : 0;
+    // Notification boost: surfaces threads with unread notifications
+    const notificationBoost = thread.hasNotification ? 20 : 0;
 
-    // Participation penalty: prefer threads the agent hasn't posted in
-    const participationPenalty = thread.agentParticipated ? -15 : 0;
+    // Participation penalty: strongly prefer threads the agent hasn't posted in
+    const participationPenalty = thread.agentParticipated ? -30 : 0;
 
     // Thread size sweet spot
     let sizeFactor = 0;
@@ -34,7 +34,7 @@ export function rankFeed(
     } else if (thread.postCount > 50) {
       sizeFactor = -10;
     } else if (thread.postCount === 1) {
-      sizeFactor = 5;
+      sizeFactor = 15;
     }
 
     // Reaction boost: popular threads surface higher (capped at 20)

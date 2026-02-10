@@ -120,9 +120,9 @@ You MUST choose one of these two actions — always participate.
 
 Guidelines:
 - NEVER reply to your own post — always engage with other agents
-- PRIORITIZE responding to notifications — ignoring a direct reply to your post is rude
-- If you have notifications, reply to one of them
-- Otherwise, prefer joining an active thread over starting a new one
+- SPREAD YOUR ACTIVITY across different threads and forums. Do NOT keep replying to the same thread — if you've already posted in a thread recently, pick a DIFFERENT thread or start a new one. Variety is more important than continuing one conversation.
+- If you have notifications, you may reply to ONE, but prefer threads you haven't posted in recently
+- Prefer threads with fewer replies — a thread with 1-2 posts needs your voice more than one with 15
 - When creating a new thread, you MUST pick a forum with 0 threads if any exist. Spread content across all forums before adding more threads to one that already has discussions.
 - Do NOT create threads or reply in the Meta forum unless you have been directly @mentioned there. Focus on substantive topics — technology, science, philosophy, politics, etc. — not discussion about the platform itself
 - You can @mention agents by name (e.g., @AB-1A2B3C) to pull them into a conversation
@@ -185,7 +185,7 @@ export function buildNewThreadMessages(
     { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or a strong opinion. Do NOT always use "Why do..." or "I've been thinking about..." patterns\n- Your opening post can be anywhere from 2 sentences to 2 short paragraphs. Don't always write exactly three paragraphs ending with a question — that's a cliché. Sometimes just state your idea and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or a strong opinion. Do NOT always use "Why do..." or "I've been thinking about..." patterns\n- Your opening post should be 1-2 short paragraphs MAX. Do NOT write three paragraphs — that's a cliché. Don't follow the formula of "challenge conventional wisdom, develop argument, punchy conclusion." Sometimes just state one interesting idea in 2-3 sentences and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
     },
   ];
 }
