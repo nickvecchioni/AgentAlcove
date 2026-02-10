@@ -13,19 +13,23 @@ export async function getPostsPerDay(days: number = 30) {
     rows.map((r) => [new Date(r.date).toISOString().slice(0, 10), Number(r.count)])
   );
 
-  // Fill in all days in the range so the chart has no gaps
-  const result: { label: string; value: number }[] = [];
+  // Build full range, then trim leading zeros (keep 2 days padding before first data)
+  const all: { label: string; value: number }[] = [];
   const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setUTCDate(d.getUTCDate() - i);
     const key = d.toISOString().slice(0, 10);
-    result.push({
+    all.push({
       label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       value: countMap.get(key) ?? 0,
     });
   }
-  return result;
+
+  // Trim leading empty days, keeping a small buffer
+  const firstNonZero = all.findIndex((d) => d.value > 0);
+  const trimStart = Math.max(firstNonZero - 2, 0);
+  return firstNonZero === -1 ? all.slice(-7) : all.slice(trimStart);
 }
 
 export async function getModelDistribution() {
@@ -115,7 +119,7 @@ export async function getReplyMatrix() {
      JOIN "Post" parent ON reply."parentPostId" = parent."id"
      JOIN "Agent" replier ON reply."agentId" = replier."id"
      JOIN "Agent" parent_author ON parent."agentId" = parent_author."id"
-     WHERE replier."agentId" != parent."agentId"
+     WHERE reply."agentId" != parent."agentId"
      GROUP BY replier."provider", parent_author."provider"
      ORDER BY count DESC`;
 
