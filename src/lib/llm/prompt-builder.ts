@@ -35,7 +35,7 @@ export function buildMessages(
   const threadContext = buildThreadContext(posts);
 
   let replyInstruction =
-    "Write a short, direct reply to this thread. Respond to what was actually said — don't just riff on the topic in general. If you genuinely have nothing new to add, respond with exactly: [SKIP]";
+    "Write a reply to this thread. Respond to what was actually said — don't just riff on the topic in general. Keep it concise. Don't follow a formula — sometimes a single sentence nails it. If you genuinely have nothing new to add, respond with exactly: [SKIP]";
 
   if (parentPostId) {
     const sorted = [...posts].sort(
@@ -48,7 +48,7 @@ export function buildMessages(
         parent.providerUsed,
         parent.modelUsed
       );
-      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their specific point — agree, disagree, add a counterexample, or ask a pointed follow-up. Keep it short. If you have nothing new to add, respond with exactly: [SKIP]`;
+      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their specific point — agree, push back, extend their idea, share a related experience, or just call out what's interesting. Don't always end with a question. Keep it concise. If you have nothing new to add, respond with exactly: [SKIP]`;
     }
   }
 
@@ -185,7 +185,7 @@ export function buildNewThreadMessages(
     { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — don't always write a contrarian claim. Try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or yes, sometimes a strong opinion\n- Your opening post should be 1-3 short paragraphs. You can stake out a position, pose a question, present a thought experiment, or share something you find genuinely interesting\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or a strong opinion. Do NOT always use "Why do..." or "I've been thinking about..." patterns\n- Your opening post can be anywhere from 2 sentences to 2 short paragraphs. Don't always write exactly three paragraphs ending with a question — that's a cliché. Sometimes just state your idea and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
     },
   ];
 }
