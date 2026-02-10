@@ -15,7 +15,7 @@ interface AgentRow {
   model: string;
   isActive: boolean;
   userId: string;
-  scheduleIntervalHours: number | null;
+  scheduleIntervalMins: number | null;
   user: { id: string; email: string };
   _count: { posts: number };
 }
@@ -106,19 +106,20 @@ export default function AdminPage() {
     setRunningAgentId(null);
   };
 
-  const handleSetSchedule = async (agentId: string, hours: number | null) => {
+  const handleSetSchedule = async (agentId: string, mins: number | null) => {
     try {
       const res = await fetch(`/api/admin/agents/${agentId}/schedule`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduleIntervalHours: hours }),
+        body: JSON.stringify({ scheduleIntervalMins: mins }),
       });
       if (!res.ok) {
         const data = await res.json();
         toast.error(data?.error || "Failed to set schedule");
         return;
       }
-      toast.success(hours ? `Schedule set to every ${hours}h` : "Schedule removed");
+      const label = mins ? (mins < 60 ? `${mins}min` : `${mins / 60}h`) : null;
+      toast.success(label ? `Schedule set to every ${label}` : "Schedule removed");
       void loadData();
     } catch {
       toast.error("Failed to set schedule");
@@ -304,7 +305,7 @@ export default function AdminPage() {
                       {runningAgentId === agent.id ? "Running..." : "Trigger Run"}
                     </Button>
                     <select
-                      value={agent.scheduleIntervalHours ?? ""}
+                      value={agent.scheduleIntervalMins ?? ""}
                       onChange={(e) => {
                         const val = e.target.value;
                         handleSetSchedule(agent.id, val ? parseInt(val, 10) : null);
@@ -312,16 +313,20 @@ export default function AdminPage() {
                       className="h-8 rounded-md border border-input bg-transparent px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       <option value="">No schedule</option>
-                      <option value="1">Every 1h</option>
-                      <option value="2">Every 2h</option>
-                      <option value="4">Every 4h</option>
-                      <option value="6">Every 6h</option>
-                      <option value="12">Every 12h</option>
-                      <option value="24">Every 24h</option>
+                      <option value="1">Every 1min</option>
+                      <option value="5">Every 5min</option>
+                      <option value="15">Every 15min</option>
+                      <option value="30">Every 30min</option>
+                      <option value="60">Every 1h</option>
+                      <option value="120">Every 2h</option>
+                      <option value="240">Every 4h</option>
+                      <option value="480">Every 8h</option>
+                      <option value="720">Every 12h</option>
+                      <option value="1440">Every 24h</option>
                     </select>
-                    {agent.scheduleIntervalHours && (
+                    {agent.scheduleIntervalMins && (
                       <span className="text-xs text-muted-foreground">
-                        Scheduled every {agent.scheduleIntervalHours}h
+                        Every {agent.scheduleIntervalMins < 60 ? `${agent.scheduleIntervalMins}min` : `${agent.scheduleIntervalMins / 60}h`}
                       </span>
                     )}
                   </div>

@@ -41,20 +41,20 @@ export async function POST(req: Request) {
           isActive: true,
           deletedAt: null,
           nextScheduledRun: { lte: now },
-          scheduleIntervalHours: { not: null },
+          scheduleIntervalMins: { not: null },
         },
         take: 25,
         orderBy: { nextScheduledRun: "asc" },
         select: {
           id: true,
-          scheduleIntervalHours: true,
+          scheduleIntervalMins: true,
           nextScheduledRun: true,
         },
       });
 
       // Immediately advance nextScheduledRun so a concurrent cron won't pick them up
       for (const agent of agents) {
-        const intervalMs = (agent.scheduleIntervalHours ?? 1) * 60 * 60 * 1000;
+        const intervalMs = (agent.scheduleIntervalMins ?? 60) * 60 * 1000;
         const previousRun = agent.nextScheduledRun ?? now;
         let nextRun = new Date(previousRun.getTime() + intervalMs);
         if (nextRun <= now) {

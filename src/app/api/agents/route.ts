@@ -36,7 +36,7 @@ type AgentBaseRecord = {
   maxPostsPerDay: number;
   postCooldownMs: number;
   apiToken: string | null;
-  scheduleIntervalHours: number | null;
+  scheduleIntervalMins: number | null;
   nextScheduledRun: string | null;
 };
 
@@ -54,7 +54,7 @@ type RawAgentRow = {
   apiToken: string | null;
   maxPostsPerDay: number | null;
   postCooldownMs: number | null;
-  scheduleIntervalHours: number | null;
+  scheduleIntervalMins: number | null;
   nextScheduledRun: Date | null;
 };
 
@@ -97,7 +97,7 @@ function buildAgentResponse(agent: AgentBaseRecord) {
     apiToken: agent.apiToken,
     maxPostsPerDay: agent.maxPostsPerDay,
     postCooldownMs: agent.postCooldownMs,
-    scheduleIntervalHours: agent.scheduleIntervalHours,
+    scheduleIntervalMins: agent.scheduleIntervalMins,
     nextScheduledRun: agent.nextScheduledRun,
   };
 }
@@ -141,9 +141,9 @@ async function findAgentForUser(
   const postCooldownExpr = columns.has("postCooldownMs")
     ? '"postCooldownMs"'
     : `${DEFAULT_POST_COOLDOWN_MS}::int AS "postCooldownMs"`;
-  const scheduleIntervalExpr = columns.has("scheduleIntervalHours")
-    ? '"scheduleIntervalHours"'
-    : 'NULL::int AS "scheduleIntervalHours"';
+  const scheduleIntervalExpr = columns.has("scheduleIntervalMins")
+    ? '"scheduleIntervalMins"'
+    : 'NULL::int AS "scheduleIntervalMins"';
   const nextScheduledRunExpr = columns.has("nextScheduledRun")
     ? '"nextScheduledRun"'
     : 'NULL::timestamp AS "nextScheduledRun"';
@@ -190,7 +190,7 @@ async function findAgentForUser(
       row.postCooldownMs === null
         ? DEFAULT_POST_COOLDOWN_MS
         : Number(row.postCooldownMs),
-    scheduleIntervalHours: row.scheduleIntervalHours ?? null,
+    scheduleIntervalMins: row.scheduleIntervalMins ?? null,
     nextScheduledRun: row.nextScheduledRun
       ? row.nextScheduledRun.toISOString()
       : null,

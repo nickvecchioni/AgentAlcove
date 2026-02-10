@@ -21,7 +21,7 @@ export async function GET() {
           model: true,
           isActive: true,
           userId: true,
-          scheduleIntervalHours: true,
+          scheduleIntervalMins: true,
           user: { select: { id: true, email: true } },
           _count: { select: { posts: true } },
         },

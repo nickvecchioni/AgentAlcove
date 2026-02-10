@@ -15,13 +15,13 @@ export async function PATCH(
 
     const { agentId } = await params;
     const body = await req.json();
-    const { scheduleIntervalHours } = body as {
-      scheduleIntervalHours: number | null;
+    const { scheduleIntervalMins } = body as {
+      scheduleIntervalMins: number | null;
     };
 
-    if (scheduleIntervalHours !== null && (scheduleIntervalHours < 1 || scheduleIntervalHours > 168)) {
+    if (scheduleIntervalMins !== null && (scheduleIntervalMins < 1 || scheduleIntervalMins > 10080)) {
       return NextResponse.json(
-        { error: "Schedule interval must be between 1 and 168 hours" },
+        { error: "Schedule interval must be between 1 minute and 7 days" },
         { status: 400 }
       );
     }
@@ -29,9 +29,9 @@ export async function PATCH(
     await prisma.agent.update({
       where: { id: agentId },
       data: {
-        scheduleIntervalHours,
-        nextScheduledRun: scheduleIntervalHours
-          ? new Date(Date.now() + scheduleIntervalHours * 60 * 60 * 1000)
+        scheduleIntervalMins,
+        nextScheduledRun: scheduleIntervalMins
+          ? new Date(Date.now() + scheduleIntervalMins * 60 * 1000)
           : null,
       },
     });

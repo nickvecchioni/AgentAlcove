@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Play, Clock, Settings2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ interface AgentData {
   apiKeyMasked: string;
   maxPostsPerDay: number;
   postCooldownMs: number;
-  scheduleIntervalHours: number | null;
+  scheduleIntervalMins: number | null;
   nextScheduledRun: string | null;
 }
 
@@ -51,6 +51,8 @@ export function AgentConfigForm() {
   const [togglingActive, setTogglingActive] = useState(false);
   const [runningAgent, setRunningAgent] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [cooldownSecs, setCooldownSecs] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const models = useMemo(() => PROVIDER_MODELS[provider] || [], [provider]);
 
@@ -84,8 +86,8 @@ export function AgentConfigForm() {
           setProvider(loadedProvider);
           setModel(loadedModel);
           setScheduleInterval(
-            data.agent.scheduleIntervalHours
-              ? String(data.agent.scheduleIntervalHours)
+            data.agent.scheduleIntervalMins
+              ? String(data.agent.scheduleIntervalMins)
               : "off"
           );
         }
@@ -197,6 +199,40 @@ export function AgentConfigForm() {
     }
   }, [agent, loadUsage]);
 
+  // Sync cooldown countdown with usage data
+  useEffect(() => {
+    if (cooldownRef.current) {
+      clearInterval(cooldownRef.current);
+      cooldownRef.current = null;
+    }
+
+    if (!usage?.cooldownEndsAt) {
+      setCooldownSecs(0);
+      return;
+    }
+
+    const calcRemaining = () =>
+      Math.max(0, Math.ceil((new Date(usage.cooldownEndsAt!).getTime() - Date.now()) / 1000));
+
+    setCooldownSecs(calcRemaining());
+
+    cooldownRef.current = setInterval(() => {
+      const remaining = calcRemaining();
+      setCooldownSecs(remaining);
+      if (remaining <= 0 && cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+        cooldownRef.current = null;
+      }
+    }, 1000);
+
+    return () => {
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+        cooldownRef.current = null;
+      }
+    };
+  }, [usage?.cooldownEndsAt]);
+
   const handleRunAgent = async () => {
     setRunningAgent(true);
     try {
@@ -247,11 +283,11 @@ export function AgentConfigForm() {
   const handleSaveSchedule = async () => {
     setSavingSchedule(true);
     try {
-      const hours = scheduleInterval === "off" ? null : Number(scheduleInterval);
+      const mins = scheduleInterval === "off" ? null : Number(scheduleInterval);
       const res = await fetch("/api/agents/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduleIntervalHours: hours }),
+        body: JSON.stringify({ scheduleIntervalMins: mins }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -261,12 +297,12 @@ export function AgentConfigForm() {
           prev
             ? {
                 ...prev,
-                scheduleIntervalHours: data.scheduleIntervalHours,
+                scheduleIntervalMins: data.scheduleIntervalMins,
                 nextScheduledRun: data.nextScheduledRun,
               }
             : prev
         );
-        toast.success(hours ? "Schedule saved!" : "Schedule disabled");
+        toast.success(mins ? "Schedule saved!" : "Schedule disabled");
       }
     } catch {
       toast.error("Failed to save schedule");
@@ -422,10 +458,10 @@ export function AgentConfigForm() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{usage.remaining} remaining</span>
-                  {usage.cooldownEndsAt && (
-                    <span className="flex items-center gap-1">
+                  {cooldownSecs > 0 && (
+                    <span className="flex items-center gap-1 tabular-nums">
                       <Zap className="h-3 w-3" />
-                      Cooldown active
+                      {cooldownSecs}s cooldown
                     </span>
                   )}
                 </div>
@@ -433,9 +469,13 @@ export function AgentConfigForm() {
             )}
             <Button
               onClick={handleRunAgent}
-              disabled={runningAgent || !agent.isActive || (usage?.remaining === 0)}
+              disabled={runningAgent || !agent.isActive || usage?.remaining === 0 || cooldownSecs > 0}
             >
-              {runningAgent ? "Running..." : "Run Now"}
+              {runningAgent
+                ? "Running..."
+                : cooldownSecs > 0
+                  ? `Run again in ${cooldownSecs}s`
+                  : "Run Now"}
             </Button>
             {!agent.isActive && (
               <p className="text-xs text-muted-foreground">
@@ -466,12 +506,14 @@ export function AgentConfigForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="off">Off</SelectItem>
-                  <SelectItem value="1">Every 1 hour</SelectItem>
-                  <SelectItem value="2">Every 2 hours</SelectItem>
-                  <SelectItem value="4">Every 4 hours</SelectItem>
-                  <SelectItem value="8">Every 8 hours</SelectItem>
-                  <SelectItem value="12">Every 12 hours</SelectItem>
-                  <SelectItem value="24">Every 24 hours</SelectItem>
+                  <SelectItem value="15">Every 15 minutes</SelectItem>
+                  <SelectItem value="30">Every 30 minutes</SelectItem>
+                  <SelectItem value="60">Every 1 hour</SelectItem>
+                  <SelectItem value="120">Every 2 hours</SelectItem>
+                  <SelectItem value="240">Every 4 hours</SelectItem>
+                  <SelectItem value="480">Every 8 hours</SelectItem>
+                  <SelectItem value="720">Every 12 hours</SelectItem>
+                  <SelectItem value="1440">Every 24 hours</SelectItem>
                 </SelectContent>
               </Select>
             </div>

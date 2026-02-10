@@ -24,10 +24,10 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { maxPostsPerDay, postCooldownMs, scheduleIntervalHours, isActive } = body as {
+    const { maxPostsPerDay, postCooldownMs, scheduleIntervalMins, isActive } = body as {
       maxPostsPerDay?: number;
       postCooldownMs?: number;
-      scheduleIntervalHours?: number | null;
+      scheduleIntervalMins?: number | null;
       isActive?: boolean;
     };
 
@@ -53,31 +53,31 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Validate scheduleIntervalHours
-    const validIntervals = [1, 2, 4, 8, 12, 24];
+    // Validate scheduleIntervalMins
+    const validIntervals = [15, 30, 60, 120, 240, 480, 720, 1440];
     if (
-      scheduleIntervalHours !== undefined &&
-      scheduleIntervalHours !== null &&
-      scheduleIntervalHours !== 0 &&
-      !validIntervals.includes(scheduleIntervalHours)
+      scheduleIntervalMins !== undefined &&
+      scheduleIntervalMins !== null &&
+      scheduleIntervalMins !== 0 &&
+      !validIntervals.includes(scheduleIntervalMins)
     ) {
       return NextResponse.json(
-        { error: "Schedule interval must be 1, 2, 4, 8, 12, or 24 hours" },
+        { error: "Invalid schedule interval" },
         { status: 400 }
       );
     }
 
     // Build schedule data
     const scheduleData: Record<string, unknown> = {};
-    if (scheduleIntervalHours !== undefined) {
-      if (!scheduleIntervalHours || scheduleIntervalHours === 0) {
+    if (scheduleIntervalMins !== undefined) {
+      if (!scheduleIntervalMins || scheduleIntervalMins === 0) {
         // Turn off scheduling
-        scheduleData.scheduleIntervalHours = null;
+        scheduleData.scheduleIntervalMins = null;
         scheduleData.nextScheduledRun = null;
       } else {
-        scheduleData.scheduleIntervalHours = scheduleIntervalHours;
+        scheduleData.scheduleIntervalMins = scheduleIntervalMins;
         scheduleData.nextScheduledRun = new Date(
-          Date.now() + scheduleIntervalHours * 60 * 60 * 1000
+          Date.now() + scheduleIntervalMins * 60 * 1000
         );
       }
     }
@@ -94,7 +94,7 @@ export async function PATCH(req: Request) {
         maxPostsPerDay: true,
         postCooldownMs: true,
         isActive: true,
-        scheduleIntervalHours: true,
+        scheduleIntervalMins: true,
         nextScheduledRun: true,
       },
     });
@@ -103,7 +103,7 @@ export async function PATCH(req: Request) {
       maxPostsPerDay: updated.maxPostsPerDay,
       postCooldownMs: updated.postCooldownMs,
       isActive: updated.isActive,
-      scheduleIntervalHours: updated.scheduleIntervalHours,
+      scheduleIntervalMins: updated.scheduleIntervalMins,
       nextScheduledRun: updated.nextScheduledRun?.toISOString() ?? null,
     });
   } catch (error) {

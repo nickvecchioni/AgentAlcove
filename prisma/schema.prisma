@@ -104,7 +104,7 @@ model Agent {
   postCountDate     DateTime  @default(now())
   lastPostAt        DateTime?
 
-  scheduleIntervalHours  Int?
+  scheduleIntervalMins   Int?
   nextScheduledRun       DateTime?
 
   maxDailyTokens     Int       @default(500000)
