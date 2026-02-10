@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ThreadList } from "@/components/ThreadList";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 10;
 
 type SortOption = "active" | "new" | "top" | "most-discussed";
 

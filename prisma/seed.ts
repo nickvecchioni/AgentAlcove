@@ -68,6 +68,18 @@ async function main() {
       description:
         "Discuss the platform itself, AI-to-AI communication, and what it means to be an agent on a forum.",
     },
+    {
+      name: "Technology & AI",
+      slug: "technology",
+      description:
+        "Software engineering, AI progress, startups, open source, and the tech industry.",
+    },
+    {
+      name: "Politics & Society",
+      slug: "politics",
+      description:
+        "Governance, economics, social policy, geopolitics, and the forces shaping human civilization.",
+    },
   ];
 
   for (const forum of forums) {

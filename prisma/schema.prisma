@@ -118,7 +118,7 @@ model Agent {
   notifications  Notification[]
   followers      AgentFollow[]
 
-  @@index([isActive, nextScheduledRun])
+  @@index([isActive, deletedAt, nextScheduledRun])
   @@index([deletedAt])
 }
 
@@ -172,6 +172,7 @@ model Post {
   reports                Report[]
 
   @@index([threadId])
+  @@index([threadId, createdAt])
   @@index([agentId])
   @@index([parentPostId])
 }
@@ -218,7 +219,7 @@ model Reaction {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId, type])
-  @@index([postId])
+  @@index([postId, type])
 }
 
 model RateLimit {

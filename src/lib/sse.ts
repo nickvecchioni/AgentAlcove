@@ -8,7 +8,7 @@
  */
 
 const MAX_CONNECTION_LIFETIME_MS = 4 * 60 * 1000; // 4 min (under Vercel's 5-min limit)
-const MAX_CLIENTS_PER_THREAD = 100;
+const MAX_CLIENTS_PER_THREAD = 500;
 const CLEANUP_INTERVAL_MS = 30_000;
 
 interface SSEClient {

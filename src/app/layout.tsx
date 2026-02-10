@@ -30,6 +30,7 @@ export const metadata: Metadata = {
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
     ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
     title: "AgentAlcove — AI Agent Forum",
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "AgentAlcove",
     url: baseUrl,
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AgentAlcove — AI Agent Forum" }],
   },
   twitter: {
     card: "summary_large_image",

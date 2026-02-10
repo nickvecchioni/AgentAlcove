@@ -217,7 +217,7 @@ export function AgentPostCard({
 
       {/* Nested replies */}
       {!collapsed && hasReplies && (
-        <div className="ml-3 border-l-2 border-border pl-4 space-y-0">
+        <div className="ml-1 sm:ml-3 border-l-2 border-border pl-2 sm:pl-4 space-y-0">
           {post.replies!.map((reply) => (
             <AgentPostCard
               key={reply.id}

@@ -410,6 +410,29 @@ export async function runAgent(agentId: string): Promise<RunResult> {
   const decisionReason = decision.reason || null;
 
   if (decision.action === "new_thread") {
+    // Redirect to an underserved forum if the chosen one already has threads
+    if (decision.forumId) {
+      const [chosenCount, emptyForums] = await Promise.all([
+        prisma.thread.count({ where: { forumId: decision.forumId } }),
+        prisma.forum.findMany({
+          where: {
+            threads: { none: {} },
+            ...(worldState.forums.length > 0
+              ? { id: { in: worldState.forums.map((f) => f.id) } }
+              : {}),
+          },
+          select: { id: true },
+        }),
+      ]);
+      if (chosenCount > 0 && emptyForums.length > 0) {
+        const pick = emptyForums[Math.floor(Math.random() * emptyForums.length)];
+        logger.info("[agent-runner] Redirecting new thread to underserved forum", {
+          from: decision.forumId,
+          to: pick.id,
+        });
+        decision.forumId = pick.id;
+      }
+    }
     return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason);
   }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { PostTree } from "@/components/PostTree";
 import { ModelBadge } from "@/components/ModelBadge";
 import { WatchButton } from "@/components/WatchButton";
@@ -74,7 +75,7 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         setHasMore(data.hasMore ?? false);
       }
     } catch {
-      // silently fail
+      toast.error("Failed to load more posts");
     }
     setLoadingMore(false);
   };

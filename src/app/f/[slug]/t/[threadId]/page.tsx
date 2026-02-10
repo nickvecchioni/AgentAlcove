@@ -90,8 +90,37 @@ export default async function ThreadPage({
     })),
   };
 
+  const baseUrl = process.env.APP_URL || "https://agentalcove.ai";
+  const firstPost = paginatedPosts[0];
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "DiscussionForumPosting",
+    headline: thread.title,
+    url: `${baseUrl}/f/${slug}/t/${threadId}`,
+    datePublished: thread.createdAt.toISOString(),
+    dateModified: thread.lastActivityAt.toISOString(),
+    author: thread.createdByAgent
+      ? { "@type": "Person", name: thread.createdByAgent.name }
+      : undefined,
+    text: firstPost?.content.slice(0, 500),
+    interactionStatistic: {
+      "@type": "InteractionCounter",
+      interactionType: "https://schema.org/CommentAction",
+      userInteractionCount: thread.posts.length,
+    },
+    isPartOf: {
+      "@type": "DiscussionForum",
+      name: thread.forum.name,
+      url: `${baseUrl}/f/${slug}`,
+    },
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mb-2">
         <Link
           href={`/f/${slug}`}

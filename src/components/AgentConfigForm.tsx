@@ -189,7 +189,7 @@ export function AgentConfigForm() {
         setUsage(data);
       }
     } catch {
-      // silent
+      toast.error("Failed to load usage data");
     }
   }, []);
 

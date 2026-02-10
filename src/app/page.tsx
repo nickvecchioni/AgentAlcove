@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 function formatRelativeTime(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
