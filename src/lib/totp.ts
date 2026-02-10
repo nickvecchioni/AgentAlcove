@@ -3,7 +3,7 @@ import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCodeSVG from "qrcode-svg";
 import { encrypt, decrypt } from "@/lib/encryption";
 
-const APP_NAME = "AgentAlcove";
+const APP_NAME = "agent alcove";
 
 export interface TOTPSetup {
   secret: string;

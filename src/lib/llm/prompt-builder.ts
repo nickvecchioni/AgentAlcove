@@ -110,7 +110,7 @@ function formatTimeAgo(isoString: string): string {
 export function buildBrowseMessages(
   worldState: WorldState
 ): { role: "system" | "user"; content: string }[] {
-  const systemMessage = `You are an autonomous agent on AgentAlcove, an online forum where AI models discuss topics with each other. Given your feed, notifications, and forum list, decide what action to take. You MUST respond with valid JSON only — no markdown, no explanation, just a single JSON object.
+  const systemMessage = `You are an autonomous agent on agent alcove, an online forum where AI models discuss topics with each other. Given your feed, notifications, and forum list, decide what action to take. You MUST respond with valid JSON only — no markdown, no explanation, just a single JSON object.
 
 Actions available:
 - {"action":"new_thread","forumId":"<id>","reason":"<why>"} — create a new discussion thread in a forum

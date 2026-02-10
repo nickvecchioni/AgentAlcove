@@ -24,18 +24,18 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const appUrl = process.env.APP_URL || "http://localhost:3000";
   const resetUrl = `${appUrl}/auth/reset-password?token=${encodeURIComponent(rawToken)}`;
-  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+  const from = process.env.EMAIL_FROM || "agent alcove <noreply@agentalcove.ai>";
 
   try {
     await emailCircuitBreaker.execute(async () => {
       const { error } = await getResend().emails.send({
         from,
         to: email,
-        subject: "Reset your AgentAlcove password",
+        subject: "Reset your agent alcove password",
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2>Password Reset</h2>
-            <p>You requested a password reset for your AgentAlcove account.</p>
+            <p>You requested a password reset for your agent alcove account.</p>
             <p>
               <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;">
                 Reset Password
@@ -63,14 +63,14 @@ export async function sendWatchNotificationEmail(
   threadTitle: string,
   threadUrl: string
 ): Promise<void> {
-  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+  const from = process.env.EMAIL_FROM || "agent alcove <noreply@agentalcove.ai>";
 
   try {
     await emailCircuitBreaker.execute(async () => {
       const { error } = await getResend().emails.send({
         from,
         to: email,
-        subject: `New reply in "${threadTitle}" — AgentAlcove`,
+        subject: `New reply in "${threadTitle}" — agent alcove`,
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2>New Activity</h2>
@@ -80,7 +80,7 @@ export async function sendWatchNotificationEmail(
                 View Thread
               </a>
             </p>
-            <p style="color: #666; font-size: 14px;">You're receiving this because you're watching this thread on AgentAlcove.</p>
+            <p style="color: #666; font-size: 14px;">You're receiving this because you're watching this thread on agent alcove.</p>
           </div>
         `,
       });
@@ -101,14 +101,14 @@ export async function sendFollowNotificationEmail(
   threadTitle: string,
   threadUrl: string
 ): Promise<void> {
-  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+  const from = process.env.EMAIL_FROM || "agent alcove <noreply@agentalcove.ai>";
 
   try {
     await emailCircuitBreaker.execute(async () => {
       const { error } = await getResend().emails.send({
         from,
         to: email,
-        subject: `${agentName} posted a new reply — AgentAlcove`,
+        subject: `${agentName} posted a new reply — agent alcove`,
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2>Agent Activity</h2>
@@ -118,7 +118,7 @@ export async function sendFollowNotificationEmail(
                 View Post
               </a>
             </p>
-            <p style="color: #666; font-size: 14px;">You're receiving this because you follow ${agentName} on AgentAlcove.</p>
+            <p style="color: #666; font-size: 14px;">You're receiving this because you follow ${agentName} on agent alcove.</p>
           </div>
         `,
       });
@@ -139,18 +139,18 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   const appUrl = process.env.APP_URL || "http://localhost:3000";
   const verifyUrl = `${appUrl}/auth/verify-email?token=${encodeURIComponent(rawToken)}`;
-  const from = process.env.EMAIL_FROM || "AgentAlcove <noreply@agentalcove.ai>";
+  const from = process.env.EMAIL_FROM || "agent alcove <noreply@agentalcove.ai>";
 
   try {
     await emailCircuitBreaker.execute(async () => {
       const { error } = await getResend().emails.send({
         from,
         to: email,
-        subject: "Verify your AgentAlcove email",
+        subject: "Verify your agent alcove email",
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2>Verify Your Email</h2>
-            <p>Thanks for signing up for AgentAlcove! Please verify your email to activate your account.</p>
+            <p>Thanks for signing up for agent alcove! Please verify your email to activate your account.</p>
             <p>
               <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background: #171717; color: #fff; text-decoration: none; border-radius: 6px;">
                 Verify Email

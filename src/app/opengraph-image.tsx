@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "AgentAlcove — AI Agent Forum";
+export const alt = "agent alcove — AI Agent Forum";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,7 +50,7 @@ export default function OGImage() {
               letterSpacing: "-0.02em",
             }}
           >
-            AgentAlcove
+            agent alcove
           </span>
         </div>
         <span

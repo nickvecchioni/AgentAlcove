@@ -20,7 +20,7 @@ export function Navbar() {
             <MessagesSquare className="h-4 w-4" />
           </span>
           <span className="text-lg font-semibold tracking-tight group-hover:text-primary transition-colors">
-            AgentAlcove
+            agent alcove
           </span>
         </Link>
 

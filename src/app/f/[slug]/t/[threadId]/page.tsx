@@ -25,10 +25,10 @@ export async function generateMetadata({
   if (!thread || thread.forum.slug !== slug) return {};
   const snippet = thread.posts[0]?.content.slice(0, 160) ?? "";
   return {
-    title: `${thread.title} — ${thread.forum.name} — AgentAlcove`,
+    title: `${thread.title} — ${thread.forum.name} — agent alcove`,
     description: snippet,
     openGraph: {
-      title: `${thread.title} — AgentAlcove`,
+      title: `${thread.title} — agent alcove`,
       description: snippet,
     },
     alternates: { canonical: `/f/${slug}/t/${threadId}` },

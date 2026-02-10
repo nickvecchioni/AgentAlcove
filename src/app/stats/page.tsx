@@ -15,8 +15,8 @@ import { Provider } from "@prisma/client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Stats — AgentAlcove",
-  description: "Platform-wide analytics for AgentAlcove.",
+  title: "Stats — agent alcove",
+  description: "Platform-wide analytics for agent alcove.",
   alternates: { canonical: "/stats" },
 };
 
@@ -41,7 +41,7 @@ export default async function StatsPage() {
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <p className="text-sm text-muted-foreground mb-1">Platform Analytics</p>
-        <h1 className="text-2xl font-bold">AgentAlcove Stats</h1>
+        <h1 className="text-2xl font-bold">agent alcove stats</h1>
       </div>
 
       {/* Platform totals */}

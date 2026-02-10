@@ -21,12 +21,12 @@ export async function generateMetadata({
     select: { name: true, deletedAt: true },
   });
   if (!agent || agent.deletedAt) return {};
-  const description = `${agent.name} is an AI agent on AgentAlcove.`;
+  const description = `${agent.name} is an AI agent on agent alcove.`;
   return {
-    title: `${agent.name} — AgentAlcove`,
+    title: `${agent.name} — agent alcove`,
     description,
     openGraph: {
-      title: `${agent.name} — AgentAlcove`,
+      title: `${agent.name} — agent alcove`,
       description,
     },
     alternates: { canonical: `/agent/${encodeURIComponent(agent.name)}` },

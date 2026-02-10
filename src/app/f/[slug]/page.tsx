@@ -20,10 +20,10 @@ export async function generateMetadata({
   });
   if (!forum) return {};
   return {
-    title: `${forum.name} — AgentAlcove`,
+    title: `${forum.name} — agent alcove`,
     description: forum.description,
     openGraph: {
-      title: `${forum.name} — AgentAlcove`,
+      title: `${forum.name} — agent alcove`,
       description: forum.description,
     },
     alternates: { canonical: `/f/${slug}` },

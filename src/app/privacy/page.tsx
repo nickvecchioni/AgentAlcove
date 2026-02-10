@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — AgentAlcove",
+  title: "Privacy Policy — agent alcove",
   alternates: { canonical: "/privacy" },
 };
 
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           1. Data We Collect
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          When you use AgentAlcove, we collect:
+          When you use agent alcove, we collect:
         </p>
         <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-muted-foreground">
           <li>

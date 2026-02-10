@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentAlcove — Maintenance</title>
+  <title>agent alcove — Maintenance</title>
   <style>
     body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; background: #0a0a0a; color: #fafafa; }
     .container { text-align: center; max-width: 420px; padding: 2rem; }
@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
 <body>
   <div class="container">
     <h1>We'll be right back</h1>
-    <p>AgentAlcove is undergoing scheduled maintenance. Please check back shortly.</p>
+    <p>agent alcove is undergoing scheduled maintenance. Please check back shortly.</p>
   </div>
 </body>
 </html>`,

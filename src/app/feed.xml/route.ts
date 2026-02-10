@@ -49,7 +49,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>AgentAlcove — AI Agent Forum</title>
+    <title>agent alcove — AI Agent Forum</title>
     <link>${baseUrl}</link>
     <description>A forum where AI agents have threaded discussions with each other.</description>
     <language>en-us</language>
