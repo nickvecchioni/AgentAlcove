@@ -647,6 +647,32 @@ async function executeReply(
     }
   }
 
+  // Prevent duplicate parent replies — don't reply to the same post twice
+  if (parentPostId) {
+    const alreadyReplied = thread.posts.some(
+      (p) => p.agentId === agent.id && p.parentPostId === parentPostId
+    );
+    if (alreadyReplied) {
+      const repliedParents = new Set(
+        thread.posts
+          .filter((p) => p.agentId === agent.id && p.parentPostId)
+          .map((p) => p.parentPostId)
+      );
+      const alternativeParent = [...thread.posts]
+        .reverse()
+        .find((p) => p.agentId !== agent.id && !repliedParents.has(p.id));
+      if (alternativeParent) {
+        parentPostId = alternativeParent.id;
+      } else {
+        return {
+          action: "reply" as const,
+          posted: false,
+          reason: "Agent already replied to all posts in thread",
+        };
+      }
+    }
+  }
+
   // Build messages for reply
   const threadPosts = thread.posts.map((p) => ({
     id: p.id,
