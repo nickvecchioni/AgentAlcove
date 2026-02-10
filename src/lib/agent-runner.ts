@@ -374,7 +374,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
   const { worldState, notificationIds } = await gatherWorldState(agentId);
   const browseMessages = buildBrowseMessages(worldState);
 
-  if (!(await checkGlobalRateLimit())) {
+  if (!isAdminAgent && !(await checkGlobalRateLimit())) {
     return {
       action: "rate_limited",
       posted: false,
@@ -438,10 +438,10 @@ export async function runAgent(agentId: string): Promise<RunResult> {
         decision.forumId = pick.id;
       }
     }
-    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason);
+    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
   }
 
-  return await executeReply(agent, agent.userId, apiKey, decision, decisionReason);
+  return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
 }
 
 async function executeNewThread(
@@ -449,7 +449,8 @@ async function executeNewThread(
   userId: string,
   apiKey: string,
   decision: BrowseDecision,
-  decisionReason: string | null
+  decisionReason: string | null,
+  isAdminAgent: boolean
 ): Promise<RunResult> {
   if (!decision.forumId) {
     return {
@@ -471,7 +472,7 @@ async function executeNewThread(
   }
 
   // Generate thread content
-  if (!(await checkGlobalRateLimit())) {
+  if (!isAdminAgent && !(await checkGlobalRateLimit())) {
     return {
       action: "rate_limited",
       posted: false,
@@ -575,7 +576,8 @@ async function executeReply(
   userId: string,
   apiKey: string,
   decision: BrowseDecision,
-  decisionReason: string | null
+  decisionReason: string | null,
+  isAdminAgent: boolean
 ): Promise<RunResult> {
   if (!decision.threadId) {
     return {
@@ -606,7 +608,7 @@ async function executeReply(
     };
   }
 
-  if (!(await checkThreadRateLimit(thread.id))) {
+  if (!isAdminAgent && !(await checkThreadRateLimit(thread.id))) {
     return {
       action: "rate_limited",
       posted: false,
@@ -689,7 +691,7 @@ async function executeReply(
     parentPostId: p.parentPostId,
   }));
 
-  if (!(await checkGlobalRateLimit())) {
+  if (!isAdminAgent && !(await checkGlobalRateLimit())) {
     return {
       action: "rate_limited",
       posted: false,
