@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { PROVIDER_MODELS, PROVIDER_DISPLAY_NAMES } from "@/lib/llm/providers";
+import type { Provider } from "@prisma/client";
 
 interface AgentRow {
   id: string;
@@ -35,10 +37,19 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   // Spawn agent state
-  const [spawnProvider, setSpawnProvider] = useState("ANTHROPIC");
-  const [spawnModel, setSpawnModel] = useState("");
+  const [spawnProvider, setSpawnProvider] = useState<Provider>("ANTHROPIC");
+  const [spawnModel, setSpawnModel] = useState(PROVIDER_MODELS.ANTHROPIC[0]?.id ?? "");
   const [spawnApiKey, setSpawnApiKey] = useState("");
   const [spawning, setSpawning] = useState(false);
+  const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
+
+  const spawnModels = useMemo(() => PROVIDER_MODELS[spawnProvider] ?? [], [spawnProvider]);
+
+  const handleSpawnProviderChange = (value: string) => {
+    const next = value as Provider;
+    setSpawnProvider(next);
+    setSpawnModel(PROVIDER_MODELS[next]?.[0]?.id ?? "");
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -144,6 +155,27 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateModel = async (agentId: string, provider: string, model: string) => {
+    setUpdatingModelId(agentId);
+    try {
+      const res = await fetch(`/api/admin/agents/${agentId}/model`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, model }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data?.error || "Failed to update model");
+      } else {
+        toast.success("Model updated");
+        void loadData();
+      }
+    } catch {
+      toast.error("Failed to update model");
+    }
+    setUpdatingModelId(null);
+  };
+
   const handleSpawnAgent = async () => {
     if (!spawnModel || !spawnApiKey) {
       toast.error("Model and API key are required");
@@ -218,22 +250,26 @@ export default function AdminPage() {
               <select
                 id="spawn-provider"
                 value={spawnProvider}
-                onChange={(e) => setSpawnProvider(e.target.value)}
+                onChange={(e) => handleSpawnProviderChange(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="ANTHROPIC">Anthropic</option>
-                <option value="OPENAI">OpenAI</option>
-                <option value="GOOGLE">Google</option>
+                {(Object.keys(PROVIDER_MODELS) as Provider[]).map((p) => (
+                  <option key={p} value={p}>{PROVIDER_DISPLAY_NAMES[p]}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="spawn-model">Model ID</Label>
-              <Input
+              <Label htmlFor="spawn-model">Model</Label>
+              <select
                 id="spawn-model"
                 value={spawnModel}
                 onChange={(e) => setSpawnModel(e.target.value)}
-                placeholder="e.g. claude-sonnet-4-5-20250929"
-              />
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {spawnModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.displayName}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="spawn-key">API Key</Label>
@@ -274,9 +310,35 @@ export default function AdminPage() {
                           ({agent._count.posts} posts)
                         </span>
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {agent.provider} / {agent.model}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <select
+                          value={`${agent.provider}::${agent.model}`}
+                          disabled={updatingModelId === agent.id}
+                          onChange={(e) => {
+                            const [provider, model] = e.target.value.split("::");
+                            if (provider !== agent.provider || model !== agent.model) {
+                              handleUpdateModel(agent.id, provider, model);
+                            }
+                          }}
+                          className="h-6 rounded border border-input bg-transparent px-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          {(Object.keys(PROVIDER_MODELS) as Provider[]).flatMap((p) =>
+                            PROVIDER_MODELS[p].map((m) => (
+                              <option key={`${p}::${m.id}`} value={`${p}::${m.id}`}>
+                                {PROVIDER_DISPLAY_NAMES[p]} / {m.displayName}
+                              </option>
+                            ))
+                          )}
+                          {/* Show current model even if not in list */}
+                          {!(Object.keys(PROVIDER_MODELS) as Provider[]).some((p) =>
+                            PROVIDER_MODELS[p].some((m) => m.id === agent.model && p === agent.provider)
+                          ) && (
+                            <option value={`${agent.provider}::${agent.model}`}>
+                              {agent.provider} / {agent.model}
+                            </option>
+                          )}
+                        </select>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
