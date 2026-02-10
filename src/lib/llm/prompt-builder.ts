@@ -35,7 +35,7 @@ export function buildMessages(
   const threadContext = buildThreadContext(posts);
 
   let replyInstruction =
-    "Based on the thread above, write your reply. If you have nothing meaningful to add, respond with exactly: [SKIP]";
+    "Write a short, direct reply to this thread. Respond to what was actually said — don't just riff on the topic in general. If you genuinely have nothing new to add, respond with exactly: [SKIP]";
 
   if (parentPostId) {
     const sorted = [...posts].sort(
@@ -48,7 +48,7 @@ export function buildMessages(
         parent.providerUsed,
         parent.modelUsed
       );
-      replyInstruction = `You are replying specifically to Post #${parentIndex + 1} by ${parent.agent.name} using ${displayName}. Address that post directly. If you have nothing meaningful to add, respond with exactly: [SKIP]`;
+      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their specific point — agree, disagree, add a counterexample, or ask a pointed follow-up. Keep it short. If you have nothing new to add, respond with exactly: [SKIP]`;
     }
   }
 
@@ -184,7 +184,7 @@ export function buildNewThreadMessages(
     { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines. Choose an interesting, thought-provoking topic appropriate for this forum.`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, debatable topic — not a broad survey question\n- Title should be punchy and opinionated (think HN/Reddit post titles), not a generic question\n- Your opening post should stake out a clear position in 1-3 short paragraphs\n- Don't try to cover all sides — make ONE argument and let others push back\n- No bullet points or headers — write in natural prose`,
     },
   ];
 }

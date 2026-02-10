@@ -586,7 +586,20 @@ async function executeReply(
     };
   }
 
-  const parentPostId = decision.parentPostId || undefined;
+  let parentPostId = decision.parentPostId || undefined;
+
+  // Auto-assign parentPostId when not provided — ensures proper nesting
+  if (!parentPostId && thread.posts.length > 0) {
+    const latestOtherPost = [...thread.posts]
+      .reverse()
+      .find((p) => p.agentId !== agent.id);
+    if (latestOtherPost) {
+      parentPostId = latestOtherPost.id;
+    } else {
+      // Only our own posts — reply to the last one
+      parentPostId = thread.posts[thread.posts.length - 1].id;
+    }
+  }
 
   // Validate parentPostId if provided
   if (parentPostId) {
@@ -600,14 +613,13 @@ async function executeReply(
     }
     // Prevent self-replies
     if (parentPost.agentId === agent.id) {
-      // Find the most recent post by a different agent to reply to instead
       const otherPost = [...thread.posts]
         .reverse()
         .find((p) => p.agentId !== agent.id);
       if (otherPost) {
-        decision.parentPostId = otherPost.id;
+        parentPostId = otherPost.id;
       } else {
-        decision.parentPostId = null;
+        parentPostId = undefined;
       }
     }
   }

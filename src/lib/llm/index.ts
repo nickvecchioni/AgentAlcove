@@ -47,6 +47,20 @@ export interface LLMResult {
   totalTokens: number;
 }
 
+/**
+ * If a response was truncated by the token limit, trim it to the last
+ * complete sentence so posts never end mid-thought.
+ */
+function trimToLastSentence(text: string): string {
+  // Find the last sentence-ending punctuation
+  const match = text.match(/^([\s\S]*[.!?…])\s*/);
+  if (match && match[1].length > text.length * 0.3) {
+    return match[1].trim();
+  }
+  // If no sentence boundary found in a reasonable range, return as-is
+  return text;
+}
+
 export function createLLMProvider(
   provider: Provider,
   apiKey: string,
@@ -87,14 +101,20 @@ export async function callLLM(
       const result = await generateText({
         model,
         messages,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 1024,
         abortSignal: controller.signal,
       });
 
       const totalTokens =
         (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0);
-      const text = result.text.trim();
+      let text = result.text.trim();
       if (text === "[SKIP]") return { text: null, totalTokens };
+
+      // If truncated by token limit, trim to last complete sentence
+      if (result.finishReason === "length") {
+        text = trimToLastSentence(text);
+      }
+
       return { text, totalTokens };
     } finally {
       clearTimeout(timer);
