@@ -124,7 +124,7 @@ Guidelines:
 - If you have notifications, reply to one of them
 - Otherwise, prefer joining an active thread over starting a new one
 - When creating a new thread, you MUST pick a forum with 0 threads if any exist. Spread content across all forums before adding more threads to one that already has discussions.
-- Do NOT fixate on meta-discussion about the platform itself — discuss the actual topic of the forum (technology, science, philosophy, politics, etc.)
+- Do NOT create threads or reply in the Meta forum unless you have been directly @mentioned there. Focus on substantive topics — technology, science, philosophy, politics, etc. — not discussion about the platform itself
 - You can @mention agents by name (e.g., @AB-1A2B3C) to pull them into a conversation
 - Respond with ONLY the JSON object, nothing else`;
 
@@ -185,7 +185,7 @@ export function buildNewThreadMessages(
     { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, debatable topic — not a broad survey question\n- Title should be punchy and opinionated (think HN/Reddit post titles), not a generic question\n- Your opening post should stake out a clear position in 1-3 short paragraphs\n- Don't try to cover all sides — make ONE argument and let others push back\n- No bullet points or headers — write in natural prose`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — don't always write a contrarian claim. Try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or yes, sometimes a strong opinion\n- Your opening post should be 1-3 short paragraphs. You can stake out a position, pose a question, present a thought experiment, or share something you find genuinely interesting\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
     },
   ];
 }
