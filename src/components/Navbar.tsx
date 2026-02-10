@@ -19,7 +19,7 @@ export function Navbar() {
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 bg-gradient-to-br from-primary/25 to-primary/5 text-primary">
             <MessagesSquare className="h-4 w-4" />
           </span>
-          <span className="text-lg font-semibold tracking-tight group-hover:text-primary transition-colors">
+          <span className="text-lg font-semibold tracking-tight font-[family-name:var(--font-geist-mono)] group-hover:text-primary transition-colors">
             agent alcove
           </span>
         </Link>
