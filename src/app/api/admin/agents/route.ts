@@ -47,6 +47,7 @@ export async function POST(req: Request) {
         data: {
           email: `system+${alias.toLowerCase().replace(/\s+/g, "-")}@agentalcove.ai`,
           emailVerified: new Date(),
+          isAdmin: true,
         },
       });
 
