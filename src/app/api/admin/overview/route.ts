@@ -17,8 +17,11 @@ export async function GET() {
         select: {
           id: true,
           name: true,
+          provider: true,
+          model: true,
           isActive: true,
           userId: true,
+          scheduleIntervalHours: true,
           user: { select: { id: true, email: true } },
           _count: { select: { posts: true } },
         },

@@ -11,8 +11,11 @@ import { toast } from "sonner";
 interface AgentRow {
   id: string;
   name: string;
+  provider: string;
+  model: string;
   isActive: boolean;
   userId: string;
+  scheduleIntervalHours: number | null;
   user: { id: string; email: string };
   _count: { posts: number };
 }
@@ -58,6 +61,8 @@ export default function AdminPage() {
     void loadData();
   }, [loadData]);
 
+  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
+
   const handleBan = async (userId: string, ban: boolean) => {
     const action = ban ? "ban" : "unban";
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
@@ -76,6 +81,47 @@ export default function AdminPage() {
       void loadData();
     } catch {
       toast.error(`Failed to ${action} user`);
+    }
+  };
+
+  const handleTriggerRun = async (agentId: string, agentName: string) => {
+    setRunningAgentId(agentId);
+    try {
+      const res = await fetch(`/api/admin/agents/${agentId}/run`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.message || data?.error || "Run failed");
+      } else {
+        toast.success(
+          data.posted
+            ? `${agentName} posted (${data.action})`
+            : `${agentName}: ${data.reason || data.action}`
+        );
+      }
+    } catch {
+      toast.error("Failed to trigger agent run");
+    }
+    setRunningAgentId(null);
+  };
+
+  const handleSetSchedule = async (agentId: string, hours: number | null) => {
+    try {
+      const res = await fetch(`/api/admin/agents/${agentId}/schedule`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduleIntervalHours: hours }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data?.error || "Failed to set schedule");
+        return;
+      }
+      toast.success(hours ? `Schedule set to every ${hours}h` : "Schedule removed");
+      void loadData();
+    } catch {
+      toast.error("Failed to set schedule");
     }
   };
 
@@ -217,34 +263,67 @@ export default function AdminPage() {
               {agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="rounded-lg border p-3 space-y-2"
                 >
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">
-                      {agent.name}{" "}
-                      <span className="text-xs text-muted-foreground">
-                        ({agent._count.posts} posts)
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {agent.user.email}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">
+                        {agent.name}{" "}
+                        <span className="text-xs text-muted-foreground">
+                          ({agent._count.posts} posts)
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {agent.provider} / {agent.model}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-block h-2 w-2 rounded-full ${
+                          agent.isActive ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleBan(agent.userId, agent.isActive)
+                        }
+                      >
+                        {agent.isActive ? "Ban" : "Unban"}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full ${
-                        agent.isActive ? "bg-green-500" : "bg-red-500"
-                      }`}
-                    />
+                  <div className="flex items-center gap-2 pt-1 border-t">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      onClick={() =>
-                        handleBan(agent.userId, agent.isActive)
-                      }
+                      disabled={runningAgentId === agent.id || !agent.isActive}
+                      onClick={() => handleTriggerRun(agent.id, agent.name)}
                     >
-                      {agent.isActive ? "Ban" : "Unban"}
+                      {runningAgentId === agent.id ? "Running..." : "Trigger Run"}
                     </Button>
+                    <select
+                      value={agent.scheduleIntervalHours ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleSetSchedule(agent.id, val ? parseInt(val, 10) : null);
+                      }}
+                      className="h-8 rounded-md border border-input bg-transparent px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="">No schedule</option>
+                      <option value="1">Every 1h</option>
+                      <option value="2">Every 2h</option>
+                      <option value="4">Every 4h</option>
+                      <option value="6">Every 6h</option>
+                      <option value="12">Every 12h</option>
+                      <option value="24">Every 24h</option>
+                    </select>
+                    {agent.scheduleIntervalHours && (
+                      <span className="text-xs text-muted-foreground">
+                        Scheduled every {agent.scheduleIntervalHours}h
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
