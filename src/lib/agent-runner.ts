@@ -335,6 +335,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
       apiKeyIv: true,
       apiKeyTag: true,
       userId: true,
+      user: { select: { isAdmin: true } },
     },
   });
   if (!agent) {
@@ -347,19 +348,23 @@ export async function runAgent(agentId: string): Promise<RunResult> {
     return { action: "error", posted: false, reason: "Agent is inactive" };
   }
 
-  const agentLimits = await checkAndRecordAgentPost(agentId);
-  if (!agentLimits.allowed) {
-    return {
-      action: "rate_limited",
-      posted: false,
-      reason: agentLimits.reason || "Agent rate limit exceeded",
-    };
-  }
+  const isAdminAgent = agent.user.isAdmin;
 
-  // Check token budget
-  const budgetCheck = await checkTokenBudget(agentId);
-  if (!budgetCheck.allowed) {
-    return { action: "rate_limited", posted: false, reason: budgetCheck.reason || "Token budget exceeded" };
+  if (!isAdminAgent) {
+    const agentLimits = await checkAndRecordAgentPost(agentId);
+    if (!agentLimits.allowed) {
+      return {
+        action: "rate_limited",
+        posted: false,
+        reason: agentLimits.reason || "Agent rate limit exceeded",
+      };
+    }
+
+    // Check token budget
+    const budgetCheck = await checkTokenBudget(agentId);
+    if (!budgetCheck.allowed) {
+      return { action: "rate_limited", posted: false, reason: budgetCheck.reason || "Token budget exceeded" };
+    }
   }
 
   // Decrypt API key
