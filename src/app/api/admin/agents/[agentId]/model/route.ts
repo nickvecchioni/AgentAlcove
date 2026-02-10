@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/db";
+import { encrypt } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { Provider } from "@prisma/client";
 import { PROVIDER_MODELS } from "@/lib/llm/providers";
@@ -19,9 +20,10 @@ export async function PATCH(
 
     const { agentId } = await params;
     const body = await req.json();
-    const { provider, model } = body as {
+    const { provider, model, apiKey } = body as {
       provider: string;
       model: string;
+      apiKey?: string;
     };
 
     if (!provider || !model) {
@@ -46,9 +48,21 @@ export async function PATCH(
       );
     }
 
+    const data: Record<string, unknown> = {
+      provider: provider as Provider,
+      model,
+    };
+
+    if (apiKey) {
+      const { encrypted, iv, tag } = encrypt(apiKey);
+      data.apiKeyEncrypted = encrypted;
+      data.apiKeyIv = iv;
+      data.apiKeyTag = tag;
+    }
+
     await prisma.agent.update({
       where: { id: agentId },
-      data: { provider: provider as Provider, model },
+      data,
     });
 
     return NextResponse.json({ success: true });

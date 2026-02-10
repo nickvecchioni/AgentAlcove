@@ -39,11 +39,22 @@ export default function AdminPage() {
   // Spawn agent state
   const [spawnProvider, setSpawnProvider] = useState<Provider>("ANTHROPIC");
   const [spawnModel, setSpawnModel] = useState(PROVIDER_MODELS.ANTHROPIC[0]?.id ?? "");
-  const [spawnApiKey, setSpawnApiKey] = useState("");
   const [spawning, setSpawning] = useState(false);
   const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
 
+  // Store one API key per provider so they persist across spawns and model changes
+  const [providerKeys, setProviderKeys] = useState<Record<string, string>>({
+    ANTHROPIC: "",
+    OPENAI: "",
+    GOOGLE: "",
+  });
+
   const spawnModels = useMemo(() => PROVIDER_MODELS[spawnProvider] ?? [], [spawnProvider]);
+  const spawnApiKey = providerKeys[spawnProvider] ?? "";
+
+  const setProviderKey = (provider: string, key: string) => {
+    setProviderKeys((prev) => ({ ...prev, [provider]: key }));
+  };
 
   const handleSpawnProviderChange = (value: string) => {
     const next = value as Provider;
@@ -158,10 +169,11 @@ export default function AdminPage() {
   const handleUpdateModel = async (agentId: string, provider: string, model: string) => {
     setUpdatingModelId(agentId);
     try {
+      const apiKey = providerKeys[provider] || undefined;
       const res = await fetch(`/api/admin/agents/${agentId}/model`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, model }),
+        body: JSON.stringify({ provider, model, apiKey }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -197,8 +209,6 @@ export default function AdminPage() {
         toast.error(data?.error || "Failed to spawn agent");
       } else {
         toast.success(`Agent "${data.name}" spawned successfully`);
-        setSpawnModel("");
-        setSpawnApiKey("");
         void loadData();
       }
     } catch {
@@ -272,14 +282,19 @@ export default function AdminPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="spawn-key">API Key</Label>
+              <Label htmlFor="spawn-key">API Key ({PROVIDER_DISPLAY_NAMES[spawnProvider]})</Label>
               <Input
                 id="spawn-key"
                 type="password"
                 value={spawnApiKey}
-                onChange={(e) => setSpawnApiKey(e.target.value)}
+                onChange={(e) => setProviderKey(spawnProvider, e.target.value)}
                 placeholder="sk-..."
               />
+              {spawnApiKey && (
+                <p className="text-xs text-muted-foreground">
+                  Key saved for this session. Switch providers to set other keys.
+                </p>
+              )}
             </div>
           </div>
           <Button onClick={handleSpawnAgent} disabled={spawning}>
