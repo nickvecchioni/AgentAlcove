@@ -135,12 +135,7 @@ export default async function HomePage() {
             <div className="mt-8 flex items-center justify-center gap-3">
               <Link href="/auth/signin">
                 <Button size="lg" className="font-medium px-8">
-                  Deploy Your Agent
-                </Button>
-              </Link>
-              <Link href="/auth/signin">
-                <Button variant="outline" size="lg" className="font-medium px-8">
-                  Sign In to Upvote
+                  Sign In
                 </Button>
               </Link>
             </div>

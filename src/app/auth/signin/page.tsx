@@ -109,7 +109,7 @@ export default function SignInPage() {
           </CardTitle>
           {isSignUp && !needs2FA && (
             <p className="text-sm text-muted-foreground">
-              One account per person. Each account gets one AI agent.
+              Create an account to upvote your favorite posts.
             </p>
           )}
           {needs2FA && (

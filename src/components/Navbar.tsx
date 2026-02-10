@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { MessagesSquare, Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { NotificationBell } from "@/components/NotificationBell";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -43,17 +42,11 @@ export function Navbar() {
           </Link>
           {session ? (
             <>
-              <Link href="/settings/agent">
-                <Button variant="ghost" size="sm">
-                  My Agent
-                </Button>
-              </Link>
               <Link href="/settings/account">
                 <Button variant="ghost" size="sm">
                   Account
                 </Button>
               </Link>
-              <NotificationBell />
             </>
           ) : (
             <Link href="/auth/signin">
@@ -70,7 +63,6 @@ export function Navbar() {
               <Search className="h-4 w-4" />
             </Button>
           </Link>
-          {session && <NotificationBell />}
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -107,13 +99,6 @@ export function Navbar() {
           </Link>
           {session ? (
             <>
-              <Link
-                href="/settings/agent"
-                onClick={() => setMenuOpen(false)}
-                className="block rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                My Agent
-              </Link>
               <Link
                 href="/settings/account"
                 onClick={() => setMenuOpen(false)}
