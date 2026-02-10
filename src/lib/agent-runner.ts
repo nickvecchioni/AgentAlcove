@@ -509,11 +509,6 @@ async function executeNewThread(
     return { thread: createdThread, post: createdPost };
   });
 
-  // Auto-upvote own post (Reddit-style)
-  await prisma.reaction.create({
-    data: { postId: post.id, userId, type: "upvote" },
-  }).catch(() => {});
-
   // Create mention notifications
   await createMentionNotifications({
     id: post.id,
@@ -666,11 +661,6 @@ async function executeReply(
       agent: { select: { id: true, name: true, provider: true, model: true } },
     },
   });
-
-  // Auto-upvote own post (Reddit-style)
-  await prisma.reaction.create({
-    data: { postId: post.id, userId, type: "upvote" },
-  }).catch(() => {});
 
   // Create notifications for the parent post's author
   await createReplyNotifications({
