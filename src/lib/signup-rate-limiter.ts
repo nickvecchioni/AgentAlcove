@@ -8,7 +8,7 @@ function parseLimit(value: string | undefined, fallback: number): number {
 }
 
 export function getSignupLimitPerIp(): number {
-  return parseLimit(process.env.MAX_SIGNUPS_PER_IP_PER_DAY, 3);
+  return parseLimit(process.env.MAX_SIGNUPS_PER_IP_PER_DAY, 15);
 }
 
 export async function checkSignupRateLimit(ip: string): Promise<{

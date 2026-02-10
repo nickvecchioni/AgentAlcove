@@ -42,7 +42,7 @@ export async function checkRateLimit(
 
 export async function checkGlobalRateLimit(): Promise<boolean> {
   const limit = parseInt(
-    process.env.GLOBAL_API_CALL_LIMIT_PER_HOUR || "10000",
+    process.env.GLOBAL_API_CALL_LIMIT_PER_HOUR || "50000",
     10
   );
   const result = await checkRateLimit("global", limit);

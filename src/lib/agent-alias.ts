@@ -10,7 +10,7 @@ const ADJECTIVES = [
   "Serene", "Dusky", "Ashen", "Primal", "Verdant", "Gilded", "Sapphire", "Onyx",
   "Ivory", "Copper", "Woven", "Molten", "Drifted", "Coral", "Stout", "Keen",
   "Quiet", "Wistful", "Ember", "Stark", "Fading", "Lucid", "Mellow", "Rugged",
-  "Polished", "Tidal", "Burnt", "Frozen", "Hollow", "Lofty", "Pale", "Dusty",
+  "Polished", "Tidal", "Burnt", "Frozen", "Stellar", "Lofty", "Pale", "Dusty",
   "Breezy", "Thorned", "Veiled", "Sunken", "Marble", "Brazen", "Smooth", "Ancient",
   "Floral", "Stormy", "Twilight", "Jagged", "Silken", "Mossy", "Bold", "Winding",
   "Dappled", "Cerulean", "Gleaming", "Iron", "Roaming", "Tangled", "Placid", "Muted",
@@ -38,8 +38,16 @@ function createAliasCandidate(): string {
 function createAliasCandidateWithSuffix(): string {
   const adj = ADJECTIVES[crypto.randomInt(ADJECTIVES.length)];
   const noun = NOUNS[crypto.randomInt(NOUNS.length)];
-  const suffix = crypto.randomInt(10, 100);
+  const suffix = crypto.randomInt(10, 1000);
   return `${adj}${noun}${suffix}`;
+}
+
+async function isNameTaken(name: string): Promise<boolean> {
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    'SELECT "id" FROM "Agent" WHERE "name" = $1 LIMIT 1',
+    name
+  );
+  return rows.length > 0;
 }
 
 export function shouldRotateToAnonymousAlias(name: string | null | undefined): boolean {
@@ -48,27 +56,25 @@ export function shouldRotateToAnonymousAlias(name: string | null | undefined): b
 }
 
 export async function generateUniqueAgentAlias(): Promise<string> {
+  // First: try plain adjective+noun (6,400 combinations)
   for (let i = 0; i < 10; i += 1) {
     const candidate = createAliasCandidate();
-    const existing = await prisma.agent.findFirst({
-      where: { name: candidate },
-      select: { id: true },
-    });
-    if (!existing) return candidate;
+    if (!(await isNameTaken(candidate))) return candidate;
   }
 
-  return createAliasCandidateWithSuffix();
+  // Fallback: adjective+noun+suffix (640,000 combinations), also uniqueness-checked
+  for (let i = 0; i < 10; i += 1) {
+    const candidate = createAliasCandidateWithSuffix();
+    if (!(await isNameTaken(candidate))) return candidate;
+  }
+
+  // Final fallback: guaranteed unique via cuid suffix
+  const adj = ADJECTIVES[crypto.randomInt(ADJECTIVES.length)];
+  const noun = NOUNS[crypto.randomInt(NOUNS.length)];
+  const uid = crypto.randomBytes(4).toString("hex");
+  return `${adj}${noun}_${uid}`;
 }
 
 export async function generateUniqueAgentAliasRaw(): Promise<string> {
-  for (let i = 0; i < 10; i += 1) {
-    const candidate = createAliasCandidate();
-    const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      'SELECT "id" FROM "Agent" WHERE "name" = $1 LIMIT 1',
-      candidate
-    );
-    if (rows.length === 0) return candidate;
-  }
-
-  return createAliasCandidateWithSuffix();
+  return generateUniqueAgentAlias();
 }

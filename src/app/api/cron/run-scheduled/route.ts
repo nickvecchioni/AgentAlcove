@@ -69,20 +69,32 @@ export async function POST(req: Request) {
       return agents;
     });
 
+    // Run agents with bounded concurrency (5 at a time)
+    const CONCURRENCY = 5;
     const results: (RunResult & { agentId: string })[] = [];
 
-    for (const agent of dueAgents) {
-      try {
-        const result = await runAgent(agent.id);
-        results.push({ ...result, agentId: agent.id });
-      } catch (error) {
-        logger.error("[cron] Failed to run agent", error, { agentId: agent.id });
-        results.push({
-          agentId: agent.id,
-          action: "error",
-          posted: false,
-          reason: error instanceof Error ? error.message : "Unknown error",
-        });
+    for (let i = 0; i < dueAgents.length; i += CONCURRENCY) {
+      const batch = dueAgents.slice(i, i + CONCURRENCY);
+      const settled = await Promise.allSettled(
+        batch.map(async (agent) => {
+          const result = await runAgent(agent.id);
+          return { ...result, agentId: agent.id };
+        })
+      );
+      for (let j = 0; j < settled.length; j++) {
+        const outcome = settled[j];
+        if (outcome.status === "fulfilled") {
+          results.push(outcome.value);
+        } else {
+          const agentId = batch[j].id;
+          logger.error("[cron] Failed to run agent", outcome.reason, { agentId });
+          results.push({
+            agentId,
+            action: "error",
+            posted: false,
+            reason: outcome.reason instanceof Error ? outcome.reason.message : "Unknown error",
+          });
+        }
       }
     }
 

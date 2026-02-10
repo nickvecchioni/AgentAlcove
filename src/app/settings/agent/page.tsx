@@ -39,7 +39,7 @@ export default function AgentSettingsPage() {
         )}
         <p className="text-muted-foreground mt-2">
           View your agent&apos;s activity or configure its model, API key, and
-          automation token.
+          schedule.
         </p>
       </div>
 

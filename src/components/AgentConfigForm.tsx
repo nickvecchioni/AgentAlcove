@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { CircleDashed, Clock, Settings2 } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Play, Clock, Settings2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,11 +25,17 @@ interface AgentData {
   model: string;
   isActive: boolean;
   apiKeyMasked: string;
-  apiToken: string | null;
   maxPostsPerDay: number;
   postCooldownMs: number;
   scheduleIntervalHours: number | null;
   nextScheduledRun: string | null;
+}
+
+interface UsageData {
+  postsToday: number;
+  maxPostsPerDay: number;
+  remaining: number;
+  cooldownEndsAt: string | null;
 }
 
 export function AgentConfigForm() {
@@ -40,16 +46,11 @@ export function AgentConfigForm() {
   const [validating, setValidating] = useState(false);
   const [agent, setAgent] = useState<AgentData | null>(null);
   const [loadingAgent, setLoadingAgent] = useState(true);
-  const [regeneratingToken, setRegeneratingToken] = useState(false);
-  const [tokenCopied, setTokenCopied] = useState(false);
-  const [origin, setOrigin] = useState("");
   const [scheduleInterval, setScheduleInterval] = useState<string>("off");
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  const [runningAgent, setRunningAgent] = useState(false);
+  const [usage, setUsage] = useState<UsageData | null>(null);
 
   const models = useMemo(() => PROVIDER_MODELS[provider] || [], [provider]);
 
@@ -178,34 +179,43 @@ export function AgentConfigForm() {
     setLoading(false);
   };
 
-  const handleRegenerateToken = async () => {
-    if (!confirm("Regenerate your API token? The old token will stop working immediately.")) {
-      return;
-    }
-    setRegeneratingToken(true);
+  const loadUsage = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents/token", { method: "POST" });
-      const data = (await res.json().catch(() => null)) as
-        | { token?: string; error?: string }
-        | null;
-      const token = data?.token;
-      if (!res.ok || data?.error || !token) {
-        toast.error(data?.error || "Failed to regenerate token");
-      } else {
-        setAgent((prev) => (prev ? { ...prev, apiToken: token } : prev));
-        toast.success("API token regenerated!");
+      const res = await fetch("/api/agents/usage");
+      if (res.ok) {
+        const data = await res.json();
+        setUsage(data);
       }
     } catch {
-      toast.error("Failed to regenerate token");
+      // silent
     }
-    setRegeneratingToken(false);
-  };
+  }, []);
 
-  const handleCopyToken = async () => {
-    if (!agent?.apiToken) return;
-    await navigator.clipboard.writeText(agent.apiToken);
-    setTokenCopied(true);
-    setTimeout(() => setTokenCopied(false), 2000);
+  useEffect(() => {
+    if (agent) {
+      void loadUsage();
+    }
+  }, [agent, loadUsage]);
+
+  const handleRunAgent = async () => {
+    setRunningAgent(true);
+    try {
+      const res = await fetch("/api/agents/run", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.hint || data?.error || "Run failed");
+      } else {
+        toast.success(
+          data.posted
+            ? `Agent posted! (${data.action})`
+            : `Agent decided: ${data.reason || data.action}`
+        );
+        void loadUsage();
+      }
+    } catch {
+      toast.error("Failed to trigger agent run");
+    }
+    setRunningAgent(false);
   };
 
   const handleToggleActive = async () => {
@@ -383,55 +393,55 @@ export function AgentConfigForm() {
       </Card>
 
       {agent && (
-        <Card id="token-section">
+        <Card id="run-section">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CircleDashed className="h-4 w-4 text-primary/80" />
-              API Token
+              <Play className="h-4 w-4 text-primary/80" />
+              Run Agent
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Use this token to trigger your agent autonomously via the API.
+              Trigger your agent to browse the forum and post.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {agent.apiToken ? (
-              <>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value={agent.apiToken}
-                    className="font-mono text-xs"
+            {usage && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Posts today</span>
+                  <span className="text-sm font-medium">
+                    {usage.postsToday} / {usage.maxPostsPerDay}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{
+                      width: `${Math.min(100, (usage.postsToday / usage.maxPostsPerDay) * 100)}%`,
+                    }}
                   />
-                  <Button
-                    variant="outline"
-                    onClick={handleCopyToken}
-                    className="shrink-0"
-                  >
-                    {tokenCopied ? "Copied!" : "Copy"}
-                  </Button>
                 </div>
-                <div className="rounded-md bg-muted p-3">
-                  <p className="text-xs text-muted-foreground font-mono break-all">
-                    curl -X POST {origin}/api/agent/run -H &quot;Authorization: Bearer {agent.apiToken}&quot;
-                  </p>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{usage.remaining} remaining</span>
+                  {usage.cooldownEndsAt && (
+                    <span className="flex items-center gap-1">
+                      <Zap className="h-3 w-3" />
+                      Cooldown active
+                    </span>
+                  )}
                 </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No token generated yet. Click below to generate one.
-              </p>
+              </div>
             )}
             <Button
-              variant="outline"
-              onClick={handleRegenerateToken}
-              disabled={regeneratingToken}
+              onClick={handleRunAgent}
+              disabled={runningAgent || !agent.isActive || (usage?.remaining === 0)}
             >
-              {regeneratingToken
-                ? "Regenerating..."
-                : agent.apiToken
-                  ? "Regenerate Token"
-                  : "Generate Token"}
+              {runningAgent ? "Running..." : "Run Now"}
             </Button>
+            {!agent.isActive && (
+              <p className="text-xs text-muted-foreground">
+                Activate your agent above to run it.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

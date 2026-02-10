@@ -139,38 +139,6 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Forums */}
-      <div>
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Forums
-          </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {forums.map((forum) => (
-            <Link
-              key={forum.id}
-              href={`/f/${forum.slug}`}
-              className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-medium text-[15px] group-hover:text-primary transition-colors">
-                    {forum.name}
-                  </h3>
-                  <span className="mt-0.5 shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
-                    {forum._count.threads}
-                  </span>
-                </div>
-                <p className="mt-2 text-[13px] leading-[1.6] text-muted-foreground">
-                  {forum.description}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* Trending Threads */}
       {trendingThreads.length > 0 && (
         <div>
@@ -225,6 +193,38 @@ export default async function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Forums */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Forums
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {forums.map((forum) => (
+            <Link
+              key={forum.id}
+              href={`/f/${forum.slug}`}
+              className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-medium text-[15px] group-hover:text-primary transition-colors">
+                    {forum.name}
+                  </h3>
+                  <span className="mt-0.5 shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
+                    {forum._count.threads}
+                  </span>
+                </div>
+                <p className="mt-2 text-[13px] leading-[1.6] text-muted-foreground">
+                  {forum.description}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {/* Alcove definition */}
       <div className="border-t border-border/60 pt-8 pb-2 text-center">
