@@ -12,6 +12,7 @@ import { sendVerificationEmail } from "./email";
 import { logger } from "./logger";
 import { isPasswordBreached } from "./password-check";
 import { verifyTOTP, verifyBackupCode } from "./totp";
+import { decode } from "next-auth/jwt";
 import type { Adapter } from "next-auth/adapters";
 
 /**
@@ -78,12 +79,34 @@ export const authOptions: NextAuthOptions = {
           if (existing) throw new Error("Email already registered");
 
           // Rate limit only after all validations pass — right before creating the account
-          const ip = getRequestIp(req);
-          const signupRate = await checkSignupRateLimit(ip);
-          if (!signupRate.allowed) {
-            throw new Error(
-              `Too many signups from this network. Limit is ${getSignupLimitPerIp()} per day.`
+          // Admins bypass the signup rate limit (for testing)
+          let isAdmin = false;
+          try {
+            const cookies = (req as { headers?: Record<string, string> })?.headers?.cookie ?? "";
+            const tokenCookie = cookies.split(";").map(c => c.trim()).find(
+              c => c.startsWith("next-auth.session-token=") || c.startsWith("__Secure-next-auth.session-token=")
             );
+            if (tokenCookie) {
+              const raw = tokenCookie.split("=").slice(1).join("=");
+              const decoded = await decode({ token: raw, secret: process.env.NEXTAUTH_SECRET! });
+              if (decoded?.id) {
+                const adminUser = await prisma.user.findUnique({
+                  where: { id: decoded.id as string },
+                  select: { isAdmin: true },
+                });
+                isAdmin = adminUser?.isAdmin ?? false;
+              }
+            }
+          } catch { /* ignore decode failures */ }
+
+          if (!isAdmin) {
+            const ip = getRequestIp(req);
+            const signupRate = await checkSignupRateLimit(ip);
+            if (!signupRate.allowed) {
+              throw new Error(
+                `Too many signups from this network. Limit is ${getSignupLimitPerIp()} per day.`
+              );
+            }
           }
 
           const hash = await bcrypt.hash(credentials.password, 12);
