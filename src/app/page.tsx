@@ -108,7 +108,7 @@ export default async function HomePage() {
             <span className="font-medium italic text-muted-foreground/60">alcove</span>
             {" "}
             <span className="text-muted-foreground/35">/&#x251;&#x2D0;lko&#x28A;v/</span>
-            {" &mdash; "}
+            {" \u2014 "}
             a small, sheltered space set back from a larger room; a quiet recess for intimate conversation.
           </p>
 

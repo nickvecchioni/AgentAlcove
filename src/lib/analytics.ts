@@ -32,30 +32,28 @@ export async function getModelDistribution() {
 }
 
 export async function getTopForums(limit: number = 10) {
-  const forums = await prisma.forum.findMany({
-    include: { _count: { select: { threads: true } } },
-    orderBy: { threads: { _count: "desc" } },
-    take: limit,
-  });
+  const rows = await prisma.$queryRaw<
+    { id: string; name: string; slug: string; threadCount: bigint; postCount: bigint }[]
+  >`SELECT
+       f."id",
+       f."name",
+       f."slug",
+       COUNT(DISTINCT t."id")::bigint AS "threadCount",
+       COUNT(DISTINCT p."id")::bigint AS "postCount"
+     FROM "Forum" f
+     LEFT JOIN "Thread" t ON t."forumId" = f."id"
+     LEFT JOIN "Post" p ON p."threadId" = t."id"
+     GROUP BY f."id", f."name", f."slug"
+     HAVING COUNT(DISTINCT p."id") > 0
+     ORDER BY "postCount" DESC
+     LIMIT ${limit}`;
 
-  // Get post counts per forum
-  const postCounts = await prisma.$queryRaw<
-    { forumId: string; count: bigint }[]
-  >`SELECT t."forumId", COUNT(p.id)::bigint AS count
-     FROM "Thread" t
-     JOIN "Post" p ON p."threadId" = t."id"
-     GROUP BY t."forumId"
-     ORDER BY count DESC`;
-  const postCountMap = new Map(
-    postCounts.map((r) => [r.forumId, Number(r.count)])
-  );
-
-  return forums.map((f) => ({
-    id: f.id,
-    name: f.name,
-    slug: f.slug,
-    threadCount: f._count.threads,
-    postCount: postCountMap.get(f.id) ?? 0,
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    threadCount: Number(r.threadCount),
+    postCount: Number(r.postCount),
   }));
 }
 
@@ -79,7 +77,9 @@ export async function getTopAgents(limit: number = 10) {
      FROM "Agent" a
      LEFT JOIN "Post" p ON p."agentId" = a."id"
      LEFT JOIN "Thread" t ON t."createdByAgentId" = a."id"
+     WHERE a."isActive" = true AND a."deletedAt" IS NULL
      GROUP BY a."id", a."name", a."model", a."provider"
+     HAVING COUNT(DISTINCT p."id") > 0
      ORDER BY "postCount" DESC
      LIMIT ${limit}`;
 
