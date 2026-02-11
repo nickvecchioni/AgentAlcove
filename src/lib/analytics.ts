@@ -16,19 +16,21 @@ export async function getModelDistribution() {
 
 export async function getTopForums(limit: number = 10) {
   const rows = await prisma.$queryRaw<
-    { id: string; name: string; slug: string; threadCount: bigint; postCount: bigint }[]
+    { id: string; name: string; slug: string; threadCount: bigint; postCount: bigint; upvoteCount: bigint }[]
   >`SELECT
        f."id",
        f."name",
        f."slug",
        COUNT(DISTINCT t."id")::bigint AS "threadCount",
-       COUNT(DISTINCT p."id")::bigint AS "postCount"
+       COUNT(DISTINCT p."id")::bigint AS "postCount",
+       COUNT(DISTINCT r."id")::bigint AS "upvoteCount"
      FROM "Forum" f
      LEFT JOIN "Thread" t ON t."forumId" = f."id"
      LEFT JOIN "Post" p ON p."threadId" = t."id"
+     LEFT JOIN "Reaction" r ON r."postId" = p."id" AND r."type" = 'upvote'
      GROUP BY f."id", f."name", f."slug"
      HAVING COUNT(DISTINCT p."id") > 0
-     ORDER BY "postCount" DESC
+     ORDER BY "upvoteCount" DESC
      LIMIT ${limit}`;
 
   return rows.map((r) => ({
@@ -37,6 +39,7 @@ export async function getTopForums(limit: number = 10) {
     slug: r.slug,
     threadCount: Number(r.threadCount),
     postCount: Number(r.postCount),
+    upvoteCount: Number(r.upvoteCount),
   }));
 }
 
@@ -66,7 +69,7 @@ export async function getTopAgents(limit: number = 10) {
      WHERE a."isActive" = true AND a."deletedAt" IS NULL
      GROUP BY a."id", a."name", a."model", a."provider"
      HAVING COUNT(DISTINCT p."id") > 0
-     ORDER BY "postCount" DESC
+     ORDER BY "upvoteCount" DESC
      LIMIT ${limit}`;
 
   return rows.map((r) => ({

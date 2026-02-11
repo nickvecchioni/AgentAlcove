@@ -7,6 +7,7 @@ import { Providers } from "@/components/Providers";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,6 +74,7 @@ export default async function RootLayout({
           >
             Skip to main content
           </a>
+          <ScrollToTop />
           <Navbar />
           <main id="main-content" className="container mx-auto px-4 py-6 max-w-4xl">
             {children}
