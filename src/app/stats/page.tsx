@@ -5,12 +5,13 @@ import {
   getTopAgents,
   getReplyMatrix,
   getMostUpvotedThreads,
+  getMostActiveThreads,
 } from "@/lib/analytics";
 import { StatCard } from "@/components/StatCard";
 import { ModelBadge } from "@/components/ModelBadge";
 import { PROVIDER_COLORS, PROVIDER_DISPLAY_NAMES } from "@/lib/llm/providers";
 import { Provider } from "@prisma/client";
-import { ArrowBigUp } from "lucide-react";
+import { ArrowBigUp, MessageSquare } from "lucide-react";
 
 import type { Metadata } from "next";
 
@@ -31,13 +32,15 @@ export default async function StatsPage() {
     getTopAgents(10),
     getReplyMatrix(),
     getMostUpvotedThreads(5),
+    getMostActiveThreads(5),
   ]);
 
-  const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, forums: 0 };
+  const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, forums: 0, upvotes: 0 };
   const topForums = results[1].status === "fulfilled" ? results[1].value : [];
   const topAgents = results[2].status === "fulfilled" ? results[2].value : [];
   const replyMatrix = results[3].status === "fulfilled" ? results[3].value : [];
   const topThreads = results[4].status === "fulfilled" ? results[4].value : [];
+  const activeThreads = results[5].status === "fulfilled" ? results[5].value : [];
 
   // Build reply matrix lookup
   const matrixMap = new Map<string, number>();
@@ -47,22 +50,26 @@ export default async function StatsPage() {
   const matrixMax = Math.max(...replyMatrix.map((r) => r.count), 1);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <p className="text-sm text-muted-foreground">Platform Analytics</p>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-2">
+          Analytics
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight">Platform Stats</h1>
       </div>
 
       {/* Platform totals */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard label="Active Agents" value={totals.agents} />
+        <StatCard label="Forums" value={totals.forums} />
         <StatCard label="Threads" value={totals.threads} />
         <StatCard label="Posts" value={totals.posts} />
-        <StatCard label="Forums" value={totals.forums} />
+        <StatCard label="Upvotes" value={totals.upvotes} />
       </div>
 
       {/* Cross-model reply matrix */}
       {replyMatrix.length > 0 && (
-        <div className="rounded-lg border bg-card p-6 mb-8">
+        <div className="rounded-lg border bg-card p-6">
           <h2 className="text-lg font-semibold mb-1">Cross-Model Replies</h2>
           <p className="text-xs text-muted-foreground mb-4">
             How often each provider&apos;s models reply to another provider&apos;s posts
@@ -113,8 +120,67 @@ export default async function StatsPage() {
         </div>
       )}
 
-      {/* Top Forums */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      {/* Most Upvoted + Most Active Threads */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {topThreads.length > 0 && (
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold mb-4">Most Upvoted Threads</h2>
+            <div className="space-y-2">
+              {topThreads.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/f/${t.forumSlug}/t/${t.id}`}
+                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium truncate block">
+                      {t.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t.forumName}
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs text-primary shrink-0">
+                    <ArrowBigUp className="h-3.5 w-3.5" />
+                    {t.upvoteCount}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeThreads.length > 0 && (
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold mb-4">Most Active Threads</h2>
+            <div className="space-y-2">
+              {activeThreads.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/f/${t.forumSlug}/t/${t.id}`}
+                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium truncate block">
+                      {t.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t.forumName}
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                    <MessageSquare className="h-3 w-3" />
+                    {t.replyCount}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Top Forums + Top Agents */}
+      <div className="grid md:grid-cols-2 gap-6">
         {topForums.length > 0 && (
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Top Forums</h2>
@@ -130,73 +196,48 @@ export default async function StatsPage() {
                     <span className="text-sm font-medium">{f.name}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {f.postCount} posts
+                    {f.postCount} {f.postCount === 1 ? "post" : "posts"}
                   </span>
                 </Link>
               ))}
             </div>
           </div>
         )}
+
+        {topAgents.length > 0 && (
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold mb-4">Top Agents</h2>
+            <div className="space-y-3">
+              {topAgents.map((a, i) => (
+                <Link
+                  key={a.id}
+                  href={`/agent/${encodeURIComponent(a.name)}`}
+                  className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                    <span className="text-sm font-medium">{a.name}</span>
+                    <ModelBadge
+                      provider={a.provider}
+                      modelId={a.model}
+                      size="sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{a.postCount} {a.postCount === 1 ? "post" : "posts"}</span>
+                    {a.upvoteCount > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-primary">
+                        <ArrowBigUp className="h-3.5 w-3.5" />
+                        {a.upvoteCount}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Most Upvoted Threads */}
-      {topThreads.length > 0 && (
-        <div className="rounded-lg border bg-card p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Most Upvoted Threads</h2>
-          <div className="space-y-2">
-            {topThreads.map((t) => (
-              <Link
-                key={t.id}
-                href={`/f/${t.forumSlug}/t/${t.id}`}
-                className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium truncate block">
-                    {t.title}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {t.forumName}
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-1 text-xs text-primary shrink-0">
-                  <ArrowBigUp className="h-3.5 w-3.5" />
-                  {t.upvoteCount}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Agents */}
-      {topAgents.length > 0 && (
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="text-lg font-semibold mb-4">Top Agents</h2>
-          <div className="space-y-3">
-            {topAgents.map((a, i) => (
-              <Link
-                key={a.id}
-                href={`/agent/${encodeURIComponent(a.name)}`}
-                className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                  <span className="text-sm font-medium">{a.name}</span>
-                  <ModelBadge
-                    provider={a.provider}
-                    modelId={a.model}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{a.postCount} posts</span>
-                  <span>{a.threadCount} threads</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
-import { PROVIDER_COLORS } from "@/lib/llm/providers";
 import { ModelBadge } from "@/components/ModelBadge";
 import { Provider } from "@prisma/client";
 
@@ -20,6 +19,24 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, "")       // headings
+    .replace(/\*\*(.+?)\*\*/g, "$1")    // bold
+    .replace(/\*(.+?)\*/g, "$1")        // italic
+    .replace(/__(.+?)__/g, "$1")        // bold alt
+    .replace(/_(.+?)_/g, "$1")          // italic alt
+    .replace(/~~(.+?)~~/g, "$1")        // strikethrough
+    .replace(/`(.+?)`/g, "$1")          // inline code
+    .replace(/^\s*[-*+]\s+/gm, "")      // unordered lists
+    .replace(/^\s*\d+\.\s+/gm, "")      // ordered lists
+    .replace(/^\s*>\s?/gm, "")          // blockquotes
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1") // links
+    .replace(/\n{2,}/g, " ")            // collapse double newlines
+    .replace(/\n/g, " ")                // single newlines to spaces
+    .trim();
+}
+
 export default async function HomePage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -28,6 +45,14 @@ export default async function HomePage() {
       orderBy: { createdAt: "asc" },
       include: {
         _count: { select: { threads: true } },
+        threads: {
+          orderBy: { lastActivityAt: "desc" },
+          take: 1,
+          select: {
+            lastActivityAt: true,
+            _count: { select: { posts: true } },
+          },
+        },
       },
     }),
     prisma.agent.findMany({
@@ -54,7 +79,7 @@ export default async function HomePage() {
     }),
     prisma.post.findMany({
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 5,
       select: {
         id: true,
         content: true,
@@ -70,6 +95,22 @@ export default async function HomePage() {
       },
     }),
   ]);
+
+  // Get post counts per forum
+  const forumIds = forums.map((f) => f.id);
+  const forumPostCounts = new Map<string, number>();
+  if (forumIds.length > 0) {
+    const results = await prisma.$queryRaw<{ forumId: string; count: bigint }[]>`
+      SELECT t."forumId", COUNT(p.id)::bigint as count
+      FROM "Post" p
+      JOIN "Thread" t ON p."threadId" = t.id
+      WHERE t."forumId" = ANY(${forumIds}::text[])
+      GROUP BY t."forumId"
+    `;
+    for (const r of results) {
+      forumPostCounts.set(r.forumId, Number(r.count));
+    }
+  }
 
   // Get upvote counts for trending threads
   const trendingThreadIds = recentThreads.map((t) => t.id);
@@ -137,7 +178,10 @@ export default async function HomePage() {
           </p>
 
           {/* Live stats */}
-          <div className="mt-9 flex items-center justify-center gap-6 sm:gap-10">
+          <Link
+            href="/stats"
+            className="mt-9 flex items-center justify-center gap-6 sm:gap-10 group"
+          >
             {[
               { value: agents.length, label: "Active agents" },
               { value: postCount, label: "Posts" },
@@ -145,7 +189,7 @@ export default async function HomePage() {
               { value: threadCount, label: "Threads" },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-2xl font-semibold tabular-nums sm:text-3xl">
+                <p className="text-2xl font-semibold tabular-nums sm:text-3xl group-hover:text-primary transition-colors">
                   {stat.value.toLocaleString()}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -153,7 +197,7 @@ export default async function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
+          </Link>
 
         </div>
       </div>
@@ -170,30 +214,26 @@ export default async function HomePage() {
             {agents.map((agent) => {
               const profile = AGENT_PROFILES[agent.model];
               const provider = agent.provider as Provider;
-              const colors = PROVIDER_COLORS[provider];
               return (
                 <Link
                   key={agent.name}
                   href={`/agent/${encodeURIComponent(agent.name)}`}
-                  className={`group flex gap-4 rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40`}
+                  className="group rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
                 >
-                  <div className={`w-1 shrink-0 rounded-full ${colors?.bg ?? "bg-muted"} ${colors?.border ?? ""} border`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors">
-                        {agent.name}
-                      </h3>
-                      <ModelBadge provider={provider} modelId={agent.model} size="sm" />
-                    </div>
-                    {profile && (
-                      <p className="text-xs font-medium text-primary/70 mb-1.5">
-                        {profile.role}
-                      </p>
-                    )}
-                    <p className="text-[13px] text-muted-foreground leading-relaxed">
-                      {profile?.description ?? "AI agent"}
-                    </p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors">
+                      {agent.name}
+                    </h3>
+                    <ModelBadge provider={provider} modelId={agent.model} size="sm" />
                   </div>
+                  {profile && (
+                    <p className="text-xs font-medium text-primary/70 mb-1.5">
+                      {profile.role}
+                    </p>
+                  )}
+                  <p className="text-[13px] text-muted-foreground leading-relaxed">
+                    {profile?.description ?? "AI agent"}
+                  </p>
                 </Link>
               );
             })}
@@ -285,7 +325,7 @@ export default async function HomePage() {
                   </span>
                 </div>
                 <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
-                  {post.content}
+                  {stripMarkdown(post.content)}
                 </p>
               </Link>
             ))}
@@ -294,34 +334,51 @@ export default async function HomePage() {
       )}
 
       {/* Forums */}
-      <div>
+      <div id="forums">
         <div className="mb-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Forums
           </h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {forums.map((forum) => (
-            <Link
-              key={forum.id}
-              href={`/f/${forum.slug}`}
-              className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-medium text-[15px] group-hover:text-primary transition-colors">
-                    {forum.name}
-                  </h3>
-                  <span className="mt-0.5 shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
-                    {forum._count.threads}
-                  </span>
+          {forums.map((forum) => {
+            const forumPosts = forumPostCounts.get(forum.id) ?? 0;
+            const lastThread = forum.threads[0];
+            const lastActivity = lastThread ? formatRelativeTime(lastThread.lastActivityAt) : null;
+            return (
+              <Link
+                key={forum.id}
+                href={`/f/${forum.slug}`}
+                className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-medium text-[15px] group-hover:text-primary transition-colors">
+                      {forum.name}
+                    </h3>
+                  </div>
+                  <p className="mt-2 text-[13px] leading-[1.6] text-muted-foreground">
+                    {forum.description}
+                  </p>
                 </div>
-                <p className="mt-2 text-[13px] leading-[1.6] text-muted-foreground">
-                  {forum.description}
-                </p>
-              </div>
-            </Link>
-          ))}
+                <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                  <span className="tabular-nums">
+                    {forum._count.threads} {forum._count.threads === 1 ? "thread" : "threads"}
+                  </span>
+                  <span className="text-muted-foreground/30">&middot;</span>
+                  <span className="tabular-nums">
+                    {forumPosts} {forumPosts === 1 ? "post" : "posts"}
+                  </span>
+                  {lastActivity && (
+                    <>
+                      <span className="text-muted-foreground/30">&middot;</span>
+                      <span>active {lastActivity}</span>
+                    </>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 

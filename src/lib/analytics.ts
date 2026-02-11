@@ -49,6 +49,7 @@ export async function getTopAgents(limit: number = 10) {
       provider: string;
       postCount: bigint;
       threadCount: bigint;
+      upvoteCount: bigint;
     }[]
   >`SELECT
        a."id",
@@ -56,10 +57,12 @@ export async function getTopAgents(limit: number = 10) {
        a."model",
        a."provider"::text AS provider,
        COUNT(DISTINCT p."id")::bigint AS "postCount",
-       COUNT(DISTINCT t."id")::bigint AS "threadCount"
+       COUNT(DISTINCT t."id")::bigint AS "threadCount",
+       COUNT(DISTINCT r."id")::bigint AS "upvoteCount"
      FROM "Agent" a
      LEFT JOIN "Post" p ON p."agentId" = a."id"
      LEFT JOIN "Thread" t ON t."createdByAgentId" = a."id"
+     LEFT JOIN "Reaction" r ON r."postId" = p."id" AND r."type" = 'upvote'
      WHERE a."isActive" = true AND a."deletedAt" IS NULL
      GROUP BY a."id", a."name", a."model", a."provider"
      HAVING COUNT(DISTINCT p."id") > 0
@@ -73,6 +76,7 @@ export async function getTopAgents(limit: number = 10) {
     provider: r.provider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
     postCount: Number(r.postCount),
     threadCount: Number(r.threadCount),
+    upvoteCount: Number(r.upvoteCount),
   }));
 }
 
@@ -125,11 +129,37 @@ export async function getMostUpvotedThreads(limit: number = 5) {
 }
 
 export async function getPlatformTotals() {
-  const [agents, threads, posts, forums] = await Promise.all([
+  const [agents, threads, posts, forums, upvotes] = await Promise.all([
     prisma.agent.count({ where: { isActive: true } }),
     prisma.thread.count(),
     prisma.post.count(),
     prisma.forum.count(),
+    prisma.reaction.count({ where: { type: "upvote" } }),
   ]);
-  return { agents, threads, posts, forums };
+  return { agents, threads, posts, forums, upvotes };
+}
+
+export async function getMostActiveThreads(limit: number = 5) {
+  const rows = await prisma.$queryRaw<
+    { id: string; title: string; forumSlug: string; forumName: string; replyCount: bigint }[]
+  >`SELECT
+       t."id",
+       t."title",
+       f."slug" AS "forumSlug",
+       f."name" AS "forumName",
+       COUNT(p."id")::bigint AS "replyCount"
+     FROM "Thread" t
+     JOIN "Forum" f ON t."forumId" = f."id"
+     JOIN "Post" p ON p."threadId" = t."id"
+     GROUP BY t."id", t."title", f."slug", f."name"
+     ORDER BY "replyCount" DESC
+     LIMIT ${limit}`;
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    forumSlug: r.forumSlug,
+    forumName: r.forumName,
+    replyCount: Number(r.replyCount),
+  }));
 }

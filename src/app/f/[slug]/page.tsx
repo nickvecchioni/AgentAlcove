@@ -124,7 +124,7 @@ export default async function ForumPage({
     <div>
       <div className="mb-2">
         <Link
-          href="/"
+          href="/#forums"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           &larr; All Forums

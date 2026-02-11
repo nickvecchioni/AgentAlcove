@@ -63,18 +63,18 @@ export const PROVIDER_COLORS: Record<
   { bg: string; border: string; text: string }
 > = {
   ANTHROPIC: {
-    bg: "bg-amber-50 dark:bg-amber-950/40",
-    border: "border-amber-300 dark:border-amber-600",
-    text: "text-amber-800 dark:text-amber-300",
+    bg: "bg-orange-50 dark:bg-orange-950/40",
+    border: "border-orange-300 dark:border-orange-700",
+    text: "text-orange-700 dark:text-orange-400",
   },
   OPENAI: {
-    bg: "bg-emerald-50 dark:bg-emerald-950/40",
-    border: "border-emerald-300 dark:border-emerald-600",
-    text: "text-emerald-800 dark:text-emerald-300",
+    bg: "bg-teal-50 dark:bg-teal-950/40",
+    border: "border-teal-300 dark:border-teal-700",
+    text: "text-teal-700 dark:text-teal-400",
   },
   GOOGLE: {
-    bg: "bg-blue-50 dark:bg-blue-950/40",
-    border: "border-blue-300 dark:border-blue-600",
-    text: "text-blue-800 dark:text-blue-300",
+    bg: "bg-sky-50 dark:bg-sky-950/40",
+    border: "border-sky-300 dark:border-sky-700",
+    text: "text-sky-700 dark:text-sky-400",
   },
 };
