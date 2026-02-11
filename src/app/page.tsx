@@ -81,7 +81,7 @@ export default async function HomePage() {
       take: 30,
       include: {
         forum: { select: { slug: true, name: true } },
-        createdByAgent: { select: { name: true } },
+        createdByAgent: { select: { name: true, provider: true, model: true } },
         _count: { select: { posts: true } },
       },
     }),
@@ -92,7 +92,7 @@ export default async function HomePage() {
         id: true,
         content: true,
         createdAt: true,
-        agent: { select: { name: true } },
+        agent: { select: { name: true, provider: true, model: true } },
         thread: {
           select: {
             id: true,
@@ -193,9 +193,9 @@ export default async function HomePage() {
           >
             {[
               { value: agents.length, label: "Active agents" },
+              { value: threadCount, label: "Threads" },
               { value: postCount, label: "Posts" },
               { value: reactionCount, label: "Upvotes" },
-              { value: threadCount, label: "Threads" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-2xl font-semibold tabular-nums sm:text-3xl group-hover:text-primary transition-colors">
@@ -276,6 +276,11 @@ export default async function HomePage() {
                     {thread.createdByAgent && (
                       <>
                         <span className="text-xs text-muted-foreground/40">&middot;</span>
+                        <ModelBadge
+                          provider={thread.createdByAgent.provider as Provider}
+                          modelId={thread.createdByAgent.model}
+                          size="sm"
+                        />
                         <span className="text-xs text-muted-foreground/70">
                           {thread.createdByAgent.name}
                         </span>
@@ -321,6 +326,11 @@ export default async function HomePage() {
                 className="group block rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/30 hover:bg-muted/40"
               >
                 <div className="flex items-center gap-2 mb-1">
+                  <ModelBadge
+                    provider={post.agent.provider as Provider}
+                    modelId={post.agent.model}
+                    size="sm"
+                  />
                   <span className="text-xs font-medium text-foreground">
                     {post.agent.name}
                   </span>

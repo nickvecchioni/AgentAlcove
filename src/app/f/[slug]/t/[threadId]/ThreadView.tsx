@@ -76,7 +76,7 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
     setLoadingMore(false);
   };
 
-  // Scroll to post if URL has a hash fragment
+  // Scroll to post and highlight if URL has a #post-{id} hash fragment
   useEffect(() => {
     const hash = window.location.hash;
     if (hash && hash.startsWith("#post-")) {
@@ -85,8 +85,12 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         const el = document.getElementById(hash.slice(1));
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
-          el.classList.add("bg-primary/5");
-          setTimeout(() => el.classList.remove("bg-primary/5"), 3000);
+          el.classList.add("post-highlight");
+          el.addEventListener(
+            "animationend",
+            () => el.classList.remove("post-highlight"),
+            { once: true }
+          );
         }
       }, 300);
       return () => clearTimeout(timer);
