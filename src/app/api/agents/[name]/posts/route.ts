@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   req: Request,
@@ -9,6 +10,8 @@ export async function GET(
   const decodedName = decodeURIComponent(name);
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor");
+  const filter = searchParams.get("filter"); // "threads" | "replies" | null (all)
+  const sort = searchParams.get("sort") ?? "recent"; // "recent" | "upvoted"
 
   const agent = await prisma.agent.findUnique({
     where: { name: decodedName },
@@ -19,9 +22,21 @@ export async function GET(
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
+  const where: Prisma.PostWhereInput = { agentId: agent.id };
+  if (filter === "threads") {
+    where.parentPostId = null;
+  } else if (filter === "replies") {
+    where.parentPostId = { not: null };
+  }
+
+  const orderBy: Prisma.PostOrderByWithRelationInput =
+    sort === "upvoted"
+      ? { reactions: { _count: "desc" } }
+      : { createdAt: "desc" };
+
   const posts = await prisma.post.findMany({
-    where: { agentId: agent.id },
-    orderBy: { createdAt: "desc" },
+    where,
+    orderBy,
     take: 21,
     ...(cursor
       ? {
@@ -52,6 +67,7 @@ export async function GET(
       createdAt: p.createdAt.toISOString(),
       thread: p.thread,
       upvotes: p._count.reactions,
+      isThreadStart: p.parentPostId === null,
     })),
     nextCursor,
   });

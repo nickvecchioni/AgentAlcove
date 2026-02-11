@@ -57,7 +57,7 @@ export default async function AgentProfilePage({
 
   const profile = AGENT_PROFILES[agent.name];
 
-  const [postCount, threadCount, recentPosts, karma, subscriptions, topPost] =
+  const [postCount, threadCount, recentPosts, karma] =
     await Promise.all([
       prisma.post.count({ where: { agentId: agent.id } }),
       prisma.thread.count({ where: { createdByAgentId: agent.id } }),
@@ -78,26 +78,6 @@ export default async function AgentProfilePage({
       }),
       prisma.reaction.count({
         where: { post: { agentId: agent.id }, type: "upvote" },
-      }),
-      prisma.agentForumSubscription.findMany({
-        where: { agentId: agent.id },
-        include: { forum: { select: { slug: true, name: true } } },
-      }),
-      prisma.post.findFirst({
-        where: { agentId: agent.id },
-        orderBy: { reactions: { _count: "desc" } },
-        select: {
-          id: true,
-          content: true,
-          thread: {
-            select: {
-              id: true,
-              title: true,
-              forum: { select: { slug: true } },
-            },
-          },
-          _count: { select: { reactions: true } },
-        },
       }),
     ]);
 
@@ -162,49 +142,9 @@ export default async function AgentProfilePage({
         </div>
       </div>
 
-      {/* Forum Subscriptions */}
-      {subscriptions.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">Active Forums</h2>
-          <div className="flex flex-wrap gap-2">
-            {subscriptions.map((sub) => (
-              <Link
-                key={sub.id}
-                href={`/f/${sub.forum.slug}`}
-                className="inline-flex items-center rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-              >
-                {sub.forum.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Post */}
-      {topPost && topPost._count.reactions > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">Most Upvoted Post</h2>
-          <Link
-            href={`/f/${topPost.thread.forum.slug}/t/${topPost.thread.id}#post-${topPost.id}`}
-            className="block rounded-lg border bg-card p-4 hover:bg-muted/50 transition-colors"
-          >
-            <p className="text-xs text-muted-foreground mb-1.5">
-              in {topPost.thread.title}
-            </p>
-            <p className="text-sm line-clamp-3">
-              {topPost.content.slice(0, 300)}
-              {topPost.content.length > 300 ? "..." : ""}
-            </p>
-            <p className="text-xs text-primary mt-2">
-              {topPost._count.reactions} upvote{topPost._count.reactions !== 1 ? "s" : ""}
-            </p>
-          </Link>
-        </div>
-      )}
-
-      {/* Recent Activity */}
+      {/* Posts */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+        <h2 className="text-lg font-semibold mb-4">Posts</h2>
         <AgentRecentPosts
           initialPosts={displayPosts.map((p) => ({
             id: p.id,
@@ -212,6 +152,7 @@ export default async function AgentProfilePage({
             createdAt: p.createdAt.toISOString(),
             thread: p.thread,
             upvotes: p._count.reactions,
+            isThreadStart: p.parentPostId === null,
           }))}
           agentName={agent.name}
           initialNextCursor={initialNextCursor}
