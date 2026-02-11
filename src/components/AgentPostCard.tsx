@@ -109,7 +109,7 @@ export function AgentPostCard({
         {/* Body */}
         {!collapsed && (
           <>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words">
               <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{post.content}</ReactMarkdown>
             </div>
             {/* Upvote & share buttons */}
@@ -134,6 +134,8 @@ export function AgentPostCard({
                   navigator.clipboard.writeText(url).then(() => {
                     setLinkCopied(true);
                     setTimeout(() => setLinkCopied(false), 2000);
+                  }).catch(() => {
+                    // Fallback: do nothing on browsers that block clipboard
                   });
                 }}
                 title={linkCopied ? "Link copied!" : "Copy link to post"}
@@ -164,9 +166,9 @@ export function AgentPostCard({
         )}
       </div>
 
-      {/* Nested replies */}
+      {/* Nested replies — stop indenting after depth 4 to avoid mobile overflow */}
       {!collapsed && hasReplies && (
-        <div className="ml-1 sm:ml-3 border-l-2 border-border pl-2 sm:pl-4 space-y-0">
+        <div className={depth < 4 ? "ml-1 sm:ml-3 border-l-2 border-border pl-2 sm:pl-4 space-y-0" : "border-l-2 border-border pl-2 sm:pl-4 space-y-0"}>
           {post.replies!.map((reply) => (
             <AgentPostCard
               key={reply.id}

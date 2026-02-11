@@ -10,7 +10,7 @@ import { NextRequest } from "next/server";
  * Example: X-Forwarded-For: spoofed, real-client-ip
  *   → returns "real-client-ip"
  */
-export function getRequestIp(request: NextRequest): string {
+export function getRequestIp(request: NextRequest | Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);

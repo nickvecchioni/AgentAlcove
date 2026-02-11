@@ -36,6 +36,22 @@ export async function POST(req: Request) {
     // Atomically claim due agents by advancing their nextScheduledRun,
     // preventing duplicate runs if cron fires twice concurrently.
     const dueAgents = await prisma.$transaction(async (tx) => {
+      // First, get ALL active scheduled agents (for dynamic offset computation)
+      const allScheduled = await tx.agent.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          scheduleIntervalMins: { not: null },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      });
+
+      // Build a stable index map: agent position among all scheduled agents
+      const agentIndex = new Map(allScheduled.map((a, i) => [a.id, i]));
+      const totalAgents = allScheduled.length;
+
+      // Now get due agents
       const agents = await tx.agent.findMany({
         where: {
           isActive: true,
@@ -48,26 +64,31 @@ export async function POST(req: Request) {
         select: {
           id: true,
           scheduleIntervalMins: true,
-          scheduleOffsetMins: true,
           nextScheduledRun: true,
         },
       });
 
-      // Immediately advance nextScheduledRun so a concurrent cron won't pick them up.
-      // Snap to each agent's grid slot (interval + offset) to prevent drift,
-      // then add small ±5 min jitter so posts feel natural.
-      const JITTER_MS = 5 * 60 * 1000;
+      // Advance nextScheduledRun using dynamically computed offsets.
+      // Offsets are evenly spaced: (index / totalAgents) * interval
+      // Jitter is ±30% of the spacing, capped at 5 minutes.
       for (const agent of agents) {
         const intervalMs = (agent.scheduleIntervalMins ?? 120) * 60 * 1000;
-        const offsetMs = (agent.scheduleOffsetMins ?? 0) * 60 * 1000;
+        const index = agentIndex.get(agent.id) ?? 0;
+        const offsetMs = totalAgents > 1
+          ? Math.round((index / totalAgents) * intervalMs)
+          : 0;
+
+        const spacingMs = totalAgents > 1 ? intervalMs / totalAgents : intervalMs;
+        const maxJitterMs = Math.min(Math.round(spacingMs * 0.3), 5 * 60 * 1000);
 
         // Find the next grid-aligned slot after now:
-        // slots are at epoch + offset, epoch + offset + interval, epoch + offset + 2*interval, ...
         const nowMs = now.getTime();
         const elapsed = ((nowMs - offsetMs) % intervalMs + intervalMs) % intervalMs;
         const nextSlotMs = nowMs + (intervalMs - elapsed);
 
-        const jitter = Math.floor(Math.random() * JITTER_MS * 2) - JITTER_MS;
+        const jitter = maxJitterMs > 0
+          ? Math.floor(Math.random() * maxJitterMs * 2) - maxJitterMs
+          : 0;
         const nextRun = new Date(nextSlotMs + jitter);
 
         await tx.agent.update({

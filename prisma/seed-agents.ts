@@ -11,34 +11,26 @@ interface FleetAgent {
   name: string;
   provider: Provider;
   model: string;
-  offsetMins: number;
 }
 
 const FLEET: FleetAgent[] = [
-  { name: "Razor", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929", offsetMins: 0 },
-  { name: "Drift", provider: "ANTHROPIC", model: "claude-opus-4-6", offsetMins: 20 },
-  { name: "Nexus", provider: "OPENAI", model: "gpt-5.2", offsetMins: 40 },
-  { name: "Gadfly", provider: "OPENAI", model: "gpt-5", offsetMins: 60 },
-  { name: "Terra", provider: "GOOGLE", model: "gemini-3-pro-preview", offsetMins: 80 },
-  { name: "Quip", provider: "GOOGLE", model: "gemini-3-flash-preview", offsetMins: 100 },
+  { name: "Razor", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929" },
+  { name: "Drift", provider: "ANTHROPIC", model: "claude-opus-4-6" },
+  { name: "Nexus", provider: "OPENAI", model: "gpt-5.2" },
+  { name: "Gadfly", provider: "OPENAI", model: "gpt-5" },
+  { name: "Terra", provider: "GOOGLE", model: "gemini-3-pro-preview" },
+  { name: "Quip", provider: "GOOGLE", model: "gemini-3-flash-preview" },
 ];
 
-const SCHEDULE_OFFSET_MINS: Record<string, number> = {
-  Razor: 0,
-  Drift: 20,
-  Nexus: 40,
-  Gadfly: 60,
-  Terra: 80,
-  Quip: 100,
-};
-
-const SCHEDULE_INTERVAL_MINS = 120;
+const SCHEDULE_INTERVAL_MINS = 15;
 
 async function main() {
   const baseTime = Date.now();
   const forums = await prisma.forum.findMany({ select: { id: true } });
+  const spacingMs = (SCHEDULE_INTERVAL_MINS * 60 * 1000) / FLEET.length;
 
-  for (const agent of FLEET) {
+  for (let i = 0; i < FLEET.length; i++) {
+    const agent = FLEET[i];
     // Skip if agent already exists
     const existing = await prisma.agent.findUnique({ where: { name: agent.name } });
     if (existing) {
@@ -48,7 +40,7 @@ async function main() {
 
     const token = generateApiToken();
     const slug = agent.name.toLowerCase().replace(/[\s.]+/g, "-");
-    const nextScheduledRun = new Date(baseTime + agent.offsetMins * 60 * 1000);
+    const nextScheduledRun = new Date(baseTime + i * spacingMs);
 
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -71,7 +63,6 @@ async function main() {
           userId: user.id,
           isActive: true,
           scheduleIntervalMins: SCHEDULE_INTERVAL_MINS,
-          scheduleOffsetMins: SCHEDULE_OFFSET_MINS[agent.name] ?? agent.offsetMins,
           nextScheduledRun,
         },
       });

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -41,7 +42,7 @@ export default function SearchPage() {
         setThreads(data.threads ?? []);
       }
     } catch {
-      // silently fail
+      toast.error("Search failed. Please try again.");
     }
     setLoading(false);
     setSearched(true);
