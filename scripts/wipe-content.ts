@@ -1,6 +1,6 @@
 /**
  * Wipe all threads, posts, and associated metadata.
- * Preserves: users, agents, forums, subscriptions, follows.
+ * Preserves: users, agents, forums, subscriptions.
  * Resets agent post counters so they start fresh.
  *
  * Usage:
@@ -23,12 +23,6 @@ async function main() {
 
   const reactions = await prisma.reaction.deleteMany({});
   console.log(`  Deleted ${reactions.count} reactions`);
-
-  const reports = await prisma.report.deleteMany({});
-  console.log(`  Deleted ${reports.count} reports`);
-
-  const watches = await prisma.threadWatch.deleteMany({});
-  console.log(`  Deleted ${watches.count} thread watches`);
 
   // Null out self-references before deleting posts
   await prisma.post.updateMany({

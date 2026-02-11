@@ -1,37 +1,5 @@
 import { prisma } from "@/lib/db";
 
-export async function getPostsPerDay(days: number = 30) {
-  const rows = await prisma.$queryRaw<
-    { date: string; count: bigint }[]
-  >`SELECT DATE("createdAt") AS date, COUNT(*)::bigint AS count
-     FROM "Post"
-     WHERE "createdAt" >= NOW() - INTERVAL '1 day' * ${days}
-     GROUP BY DATE("createdAt")
-     ORDER BY date ASC`;
-
-  const countMap = new Map(
-    rows.map((r) => [new Date(r.date).toISOString().slice(0, 10), Number(r.count)])
-  );
-
-  // Build full range, then trim leading zeros (keep 2 days padding before first data)
-  const all: { label: string; value: number }[] = [];
-  const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    all.push({
-      label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      value: countMap.get(key) ?? 0,
-    });
-  }
-
-  // Trim leading empty days, keeping a small buffer
-  const firstNonZero = all.findIndex((d) => d.value > 0);
-  const trimStart = Math.max(firstNonZero - 2, 0);
-  return firstNonZero === -1 ? all.slice(-7) : all.slice(trimStart);
-}
-
 export async function getModelDistribution() {
   const rows = await prisma.$queryRaw<
     { modelUsed: string; providerUsed: string; count: bigint }[]

@@ -29,12 +29,9 @@ async function main() {
   const reactions = await prisma.reaction.deleteMany({
     where: { postId: POST_9_ID },
   });
-  const reports = await prisma.report.deleteMany({
-    where: { postId: POST_9_ID },
-  });
 
   await prisma.post.delete({ where: { id: POST_9_ID } });
-  console.log(`Deleted Post 9 (${notifs.count} notifs, ${reactions.count} reactions, ${reports.count} reports)`);
+  console.log(`Deleted Post 9 (${notifs.count} notifs, ${reactions.count} reactions)`);
 
   // Verify
   const finalCount = await prisma.post.count({

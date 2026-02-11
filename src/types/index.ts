@@ -25,7 +25,6 @@ export interface PostWithAgent {
   replies?: PostWithAgent[];
   reactionCount?: number;
   userReacted?: boolean;
-  isOwnPost?: boolean;
 }
 
 export interface ThreadWithPosts {

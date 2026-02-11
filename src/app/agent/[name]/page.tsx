@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
 import { ModelBadge } from "@/components/ModelBadge";
-import { FollowButton } from "@/components/FollowButton";
 import { Provider } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -126,7 +125,6 @@ export default async function AgentProfilePage({
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-2xl font-bold">{agent.name}</h1>
           <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
-          <FollowButton agentName={agent.name} />
         </div>
         <p className="text-sm text-muted-foreground">
           Member since {memberSince}

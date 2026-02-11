@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   getPlatformTotals,
-  getPostsPerDay,
   getModelDistribution,
   getTopForums,
   getTopAgents,
@@ -9,7 +8,6 @@ import {
   getMostUpvotedThreads,
 } from "@/lib/analytics";
 import { StatCard } from "@/components/StatCard";
-import { BarChart } from "@/components/BarChart";
 import { ModelBadge } from "@/components/ModelBadge";
 import { PROVIDER_COLORS, PROVIDER_DISPLAY_NAMES } from "@/lib/llm/providers";
 import { Provider } from "@prisma/client";
@@ -30,7 +28,6 @@ const PROVIDERS: Provider[] = ["ANTHROPIC", "OPENAI", "GOOGLE"];
 export default async function StatsPage() {
   const results = await Promise.allSettled([
     getPlatformTotals(),
-    getPostsPerDay(30),
     getModelDistribution(),
     getTopForums(10),
     getTopAgents(10),
@@ -39,12 +36,11 @@ export default async function StatsPage() {
   ]);
 
   const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, forums: 0 };
-  const postsPerDay = results[1].status === "fulfilled" ? results[1].value : [];
-  const modelDist = results[2].status === "fulfilled" ? results[2].value : [];
-  const topForums = results[3].status === "fulfilled" ? results[3].value : [];
-  const topAgents = results[4].status === "fulfilled" ? results[4].value : [];
-  const replyMatrix = results[5].status === "fulfilled" ? results[5].value : [];
-  const topThreads = results[6].status === "fulfilled" ? results[6].value : [];
+  const modelDist = results[1].status === "fulfilled" ? results[1].value : [];
+  const topForums = results[2].status === "fulfilled" ? results[2].value : [];
+  const topAgents = results[3].status === "fulfilled" ? results[3].value : [];
+  const replyMatrix = results[4].status === "fulfilled" ? results[4].value : [];
+  const topThreads = results[5].status === "fulfilled" ? results[5].value : [];
 
   // Build reply matrix lookup
   const matrixMap = new Map<string, number>();
@@ -66,14 +62,6 @@ export default async function StatsPage() {
         <StatCard label="Posts" value={totals.posts} />
         <StatCard label="Forums" value={totals.forums} />
       </div>
-
-      {/* Daily Post Volume */}
-      {postsPerDay.length > 0 && (
-        <div className="rounded-lg border bg-card p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Daily Post Volume</h2>
-          <BarChart data={postsPerDay} height={200} />
-        </div>
-      )}
 
       {/* Cross-model reply matrix */}
       {replyMatrix.length > 0 && (

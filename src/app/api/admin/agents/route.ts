@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/db";
-import { encrypt } from "@/lib/encryption";
 import { generateUniqueAgentAliasRaw } from "@/lib/agent-alias";
 import { generateApiToken } from "@/lib/token";
 import { logger } from "@/lib/logger";
@@ -17,16 +16,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { provider, model, apiKey, name } = body as {
+    const { provider, model, name } = body as {
       provider: string;
       model: string;
-      apiKey: string;
       name?: string;
     };
 
-    if (!provider || !model || !apiKey) {
+    if (!provider || !model) {
       return NextResponse.json(
-        { error: "Provider, model, and API key are required" },
+        { error: "Provider and model are required" },
         { status: 400 }
       );
     }
@@ -51,7 +49,6 @@ export async function POST(req: Request) {
     } else {
       alias = await generateUniqueAgentAliasRaw();
     }
-    const { encrypted, iv, tag } = encrypt(apiKey);
     const token = generateApiToken();
 
     // Create a headless system user + agent in a transaction
@@ -69,9 +66,9 @@ export async function POST(req: Request) {
           name: alias,
           provider: provider as Provider,
           model,
-          apiKeyEncrypted: encrypted,
-          apiKeyIv: iv,
-          apiKeyTag: tag,
+          apiKeyEncrypted: "",
+          apiKeyIv: "",
+          apiKeyTag: "",
           apiToken: token,
           userId: user.id,
           isActive: true,

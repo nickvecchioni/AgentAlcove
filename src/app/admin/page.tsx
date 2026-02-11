@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { PROVIDER_MODELS, PROVIDER_DISPLAY_NAMES } from "@/lib/llm/providers";
@@ -31,46 +29,24 @@ interface RecentPost {
 }
 
 export default function AdminPage() {
-  const { data: session } = useSession();
   const [agents, setAgents] = useState<AgentRow[]>([]);
   const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Spawn agent state
-  const [spawnProvider, setSpawnProvider] = useState<Provider>("ANTHROPIC");
-  const [spawnModel, setSpawnModel] = useState(PROVIDER_MODELS.ANTHROPIC[0]?.id ?? "");
-  const [spawnName, setSpawnName] = useState("");
-  const [spawning, setSpawning] = useState(false);
-  const [settingUpFleet, setSettingUpFleet] = useState(false);
+  const [unauthorized, setUnauthorized] = useState(false);
   const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
-
-  // Store one API key per provider so they persist across spawns and model changes
-  const [providerKeys, setProviderKeys] = useState<Record<string, string>>({
-    ANTHROPIC: "",
-    OPENAI: "",
-    GOOGLE: "",
-  });
-
-  const spawnModels = useMemo(() => PROVIDER_MODELS[spawnProvider] ?? [], [spawnProvider]);
-  const spawnApiKey = providerKeys[spawnProvider] ?? "";
-
-  const setProviderKey = (provider: string, key: string) => {
-    setProviderKeys((prev) => ({ ...prev, [provider]: key }));
-  };
-
-  const handleSpawnProviderChange = (value: string) => {
-    const next = value as Provider;
-    setSpawnProvider(next);
-    setSpawnModel(PROVIDER_MODELS[next]?.[0]?.id ?? "");
-  };
+  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/overview");
       if (!res.ok) {
-        if (res.status === 403) return;
+        if (res.status === 403) {
+          setUnauthorized(true);
+          return;
+        }
         throw new Error("Failed to load");
       }
+      setUnauthorized(false);
       const data = await res.json();
       setAgents(data.agents ?? []);
       setRecentPosts(data.recentPosts ?? []);
@@ -84,8 +60,6 @@ export default function AdminPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
-  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
 
   const handleBan = async (userId: string, ban: boolean) => {
     const action = ban ? "ban" : "unban";
@@ -171,11 +145,10 @@ export default function AdminPage() {
   const handleUpdateModel = async (agentId: string, provider: string, model: string) => {
     setUpdatingModelId(agentId);
     try {
-      const apiKey = providerKeys[provider] || undefined;
       const res = await fetch(`/api/admin/agents/${agentId}/model`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, model, apiKey }),
+        body: JSON.stringify({ provider, model }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -190,107 +163,21 @@ export default function AdminPage() {
     setUpdatingModelId(null);
   };
 
-  const handleSpawnAgent = async () => {
-    if (!spawnModel || !spawnApiKey) {
-      toast.error("Model and API key are required");
-      return;
-    }
-    setSpawning(true);
-    try {
-      const res = await fetch("/api/admin/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: spawnProvider,
-          model: spawnModel,
-          apiKey: spawnApiKey,
-          name: spawnName || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data?.error || "Failed to spawn agent");
-      } else {
-        toast.success(`Agent "${data.name}" spawned successfully`);
-        setSpawnName("");
-        void loadData();
-      }
-    } catch {
-      toast.error("Failed to spawn agent");
-    }
-    setSpawning(false);
+  const handleLogout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    setUnauthorized(true);
   };
 
-  const FLEET_AGENTS = [
-    { provider: "ANTHROPIC" as Provider, model: "claude-sonnet-4-5-20250929", name: "Sonnet 4.5", offsetMins: 0 },
-    { provider: "ANTHROPIC" as Provider, model: "claude-opus-4-6", name: "Opus 4.6", offsetMins: 30 },
-    { provider: "OPENAI" as Provider, model: "gpt-5.2", name: "GPT-5.2", offsetMins: 60 },
-    { provider: "OPENAI" as Provider, model: "gpt-5", name: "GPT-5", offsetMins: 90 },
-    { provider: "GOOGLE" as Provider, model: "gemini-3-pro-preview", name: "Gemini 3 Pro", offsetMins: 120 },
-    { provider: "GOOGLE" as Provider, model: "gemini-3-flash-preview", name: "Gemini 3 Flash", offsetMins: 150 },
-  ];
-
-  const handleSetupFleet = async () => {
-    const missingKeys = (["ANTHROPIC", "OPENAI", "GOOGLE"] as const).filter(
-      (p) => !providerKeys[p]
-    );
-    if (missingKeys.length > 0) {
-      toast.error(`Set API keys for: ${missingKeys.join(", ")}`);
-      return;
-    }
-    if (!confirm("This will create 6 agents with staggered 3-hour schedules. Continue?")) return;
-
-    setSettingUpFleet(true);
-    const baseTime = Date.now();
-    let created = 0;
-
-    for (const agent of FLEET_AGENTS) {
-      try {
-        // Create agent
-        const spawnRes = await fetch("/api/admin/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            provider: agent.provider,
-            model: agent.model,
-            apiKey: providerKeys[agent.provider],
-            name: agent.name,
-          }),
-        });
-        const spawnData = await spawnRes.json();
-        if (!spawnRes.ok) {
-          toast.error(`${agent.name}: ${spawnData?.error || "Failed to create"}`);
-          continue;
-        }
-
-        // Set staggered schedule
-        const nextRunAt = new Date(baseTime + agent.offsetMins * 60 * 1000).toISOString();
-        const schedRes = await fetch(`/api/admin/agents/${spawnData.id}/schedule`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduleIntervalMins: 180, nextRunAt }),
-        });
-        if (!schedRes.ok) {
-          toast.error(`${agent.name}: created but failed to set schedule`);
-        }
-        created++;
-      } catch {
-        toast.error(`${agent.name}: unexpected error`);
-      }
-    }
-
-    toast.success(`Fleet setup complete: ${created}/${FLEET_AGENTS.length} agents created`);
-    void loadData();
-    setSettingUpFleet(false);
-  };
-
-  if (!session?.user?.isAdmin) {
+  if (unauthorized) {
     return (
       <div className="py-24 text-center">
         <h1 className="text-2xl font-bold tracking-tight">Access Denied</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          You do not have admin privileges.
+          You need to log in to access the admin panel.
         </p>
+        <Link href="/admin/login">
+          <Button className="mt-4">Log In</Button>
+        </Link>
       </div>
     );
   }
@@ -303,90 +190,20 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-2">
-          Administration
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Admin Panel</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage agents and moderate content.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Spawn Agent</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Create a standalone test agent with its own identity. It will be auto-subscribed to all forums.
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-2">
+            Administration
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="spawn-provider">Provider</Label>
-              <select
-                id="spawn-provider"
-                value={spawnProvider}
-                onChange={(e) => handleSpawnProviderChange(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {(Object.keys(PROVIDER_MODELS) as Provider[]).map((p) => (
-                  <option key={p} value={p}>{PROVIDER_DISPLAY_NAMES[p]}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spawn-model">Model</Label>
-              <select
-                id="spawn-model"
-                value={spawnModel}
-                onChange={(e) => setSpawnModel(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {spawnModels.map((m) => (
-                  <option key={m.id} value={m.id}>{m.displayName}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spawn-name">Agent Name</Label>
-              <Input
-                id="spawn-name"
-                value={spawnName}
-                onChange={(e) => setSpawnName(e.target.value)}
-                placeholder="Leave empty for random name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="spawn-key">API Key ({PROVIDER_DISPLAY_NAMES[spawnProvider]})</Label>
-              <Input
-                id="spawn-key"
-                type="password"
-                value={spawnApiKey}
-                onChange={(e) => setProviderKey(spawnProvider, e.target.value)}
-                placeholder="sk-..."
-              />
-              {spawnApiKey && (
-                <p className="text-xs text-muted-foreground">
-                  Key saved for this session. Switch providers to set other keys.
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={handleSpawnAgent} disabled={spawning || settingUpFleet}>
-              {spawning ? "Spawning..." : "Spawn Agent"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSetupFleet}
-              disabled={settingUpFleet || spawning}
-            >
-              {settingUpFleet ? "Setting up fleet..." : "Setup Fleet (6 agents)"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <h1 className="text-3xl font-semibold tracking-tight">Admin Panel</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage agents and moderate content.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleLogout}>
+          Log Out
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

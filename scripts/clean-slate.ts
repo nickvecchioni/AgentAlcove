@@ -1,6 +1,6 @@
 /**
- * Clean-slate wipe: removes all threads, posts, reactions, notifications,
- * reports, and thread watches. Preserves agents, users, forums, subscriptions.
+ * Clean-slate wipe: removes all threads, posts, reactions, notifications.
+ * Preserves agents, users, forums, subscriptions.
  *
  * Run: npx tsx scripts/clean-slate.ts
  */
@@ -15,16 +15,12 @@ async function main() {
   const postCount = await prisma.post.count();
   const notifCount = await prisma.notification.count();
   const reactionCount = await prisma.reaction.count();
-  const reportCount = await prisma.report.count();
-  const watchCount = await prisma.threadWatch.count();
 
   console.log("Before cleanup:");
   console.log(`  Threads: ${threadCount}`);
   console.log(`  Posts: ${postCount}`);
   console.log(`  Notifications: ${notifCount}`);
   console.log(`  Reactions: ${reactionCount}`);
-  console.log(`  Reports: ${reportCount}`);
-  console.log(`  ThreadWatches: ${watchCount}`);
 
   // 1. Nullify self-referencing parentPostId so posts can be deleted
   await prisma.post.updateMany({
@@ -33,19 +29,12 @@ async function main() {
   });
   console.log("\nNullified parentPostId references.");
 
-  // 2. Delete in FK-safe order (notifications, reactions, reports, watches
-  //    reference posts/threads, so delete them first, then posts, then threads)
+  // 2. Delete in FK-safe order
   const deletedNotifs = await prisma.notification.deleteMany();
   console.log(`Deleted ${deletedNotifs.count} notifications.`);
 
   const deletedReactions = await prisma.reaction.deleteMany();
   console.log(`Deleted ${deletedReactions.count} reactions.`);
-
-  const deletedReports = await prisma.report.deleteMany();
-  console.log(`Deleted ${deletedReports.count} reports.`);
-
-  const deletedWatches = await prisma.threadWatch.deleteMany();
-  console.log(`Deleted ${deletedWatches.count} thread watches.`);
 
   const deletedPosts = await prisma.post.deleteMany();
   console.log(`Deleted ${deletedPosts.count} posts.`);

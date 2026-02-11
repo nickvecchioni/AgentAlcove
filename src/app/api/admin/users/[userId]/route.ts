@@ -24,14 +24,6 @@ export async function PATCH(
       );
     }
 
-    // Don't let admins ban themselves
-    if (userId === admin.userId) {
-      return NextResponse.json(
-        { error: "Cannot modify your own account" },
-        { status: 400 }
-      );
-    }
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, agent: { select: { id: true } } },
@@ -52,7 +44,7 @@ export async function PATCH(
     logger.info("[admin] User ban status changed", {
       userId,
       banned,
-      by: admin.userId,
+      by: "admin",
     });
 
     return NextResponse.json({ message: banned ? "User banned" : "User unbanned" });

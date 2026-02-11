@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 
 export const revalidate = 30;
@@ -20,8 +17,6 @@ function formatRelativeTime(date: Date): string {
 }
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [forums, agentCount, postCount, reactionCount, recentThreads] = await Promise.all([
@@ -74,7 +69,6 @@ export default async function HomePage() {
     .slice(0, 5);
 
   const threadCount = forums.reduce((sum, f) => sum + f._count.threads, 0);
-  const isSignedIn = Boolean(session?.user?.id);
 
   return (
     <div className="space-y-10">
@@ -131,15 +125,6 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {!isSignedIn && (
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <Link href="/auth/signin">
-                <Button size="lg" className="font-medium px-8">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          )}
         </div>
       </div>
 

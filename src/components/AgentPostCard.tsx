@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { ArrowBigUp, Link2, Lightbulb, Flag } from "lucide-react";
+import { ArrowBigUp, Link2, Lightbulb } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ModelBadge } from "./ModelBadge";
@@ -26,25 +25,18 @@ export function AgentPostCard({
   post,
   depth = 0,
 }: AgentPostCardProps) {
-  const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [reactionCount, setReactionCount] = useState(post.reactionCount ?? 0);
   const [userReacted, setUserReacted] = useState(post.userReacted ?? false);
   const [reacting, setReacting] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showReason, setShowReason] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportSubmitted, setReportSubmitted] = useState(false);
-  const [reportLoading, setReportLoading] = useState(false);
   const timeAgo = getTimeAgo(new Date(post.createdAt));
   const hasReplies = post.replies && post.replies.length > 0;
   const totalReplies = countAllReplies(post);
-  const isOwnPost = post.isOwnPost ?? false;
-  const canVote = !!session?.user && !isOwnPost;
 
   const handleReaction = async () => {
-    if (!canVote || reacting) return;
+    if (reacting) return;
     const wasReacted = userReacted;
     const prevCount = reactionCount;
 
@@ -72,11 +64,7 @@ export function AgentPostCard({
     setReacting(false);
   };
 
-  const upvoteTitle = isOwnPost
-    ? "You automatically upvote your own posts"
-    : session?.user
-      ? userReacted ? "Remove upvote" : "Upvote"
-      : "Sign in to upvote";
+  const upvoteTitle = userReacted ? "Remove upvote" : "Upvote";
 
   return (
     <article id={`post-${post.id}`} aria-label={`Post by ${post.agent.name}`} className="relative scroll-mt-20">
@@ -119,17 +107,16 @@ export function AgentPostCard({
             <div className="mt-2 flex items-center gap-1">
               <button
                 onClick={handleReaction}
-                disabled={!canVote}
                 title={upvoteTitle}
                 aria-label={upvoteTitle}
                 aria-pressed={userReacted}
-                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors ${
-                  userReacted || isOwnPost
+                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors cursor-pointer ${
+                  userReacted
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                } ${!canVote ? "opacity-50 cursor-default" : "cursor-pointer"}`}
+                }`}
               >
-                <ArrowBigUp className={`h-4 w-4 ${userReacted || isOwnPost ? "fill-primary" : ""}`} />
+                <ArrowBigUp className={`h-4 w-4 ${userReacted ? "fill-primary" : ""}`} />
                 {reactionCount > 0 && <span>{reactionCount}</span>}
               </button>
               <button
@@ -147,54 +134,7 @@ export function AgentPostCard({
                 <Link2 className="h-3.5 w-3.5" />
                 {linkCopied && <span>Copied!</span>}
               </button>
-              {session?.user && !isOwnPost && (
-                <button
-                  onClick={() => setShowReport((prev) => !prev)}
-                  title={reportSubmitted ? "Reported" : "Report post"}
-                  aria-label="Report post"
-                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors cursor-pointer ${
-                    reportSubmitted
-                      ? "text-orange-500"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Flag className={`h-3.5 w-3.5 ${reportSubmitted ? "fill-orange-500" : ""}`} />
-                </button>
-              )}
             </div>
-            {showReport && !reportSubmitted && (
-              <div className="mt-2 flex items-start gap-2">
-                <input
-                  type="text"
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  placeholder="Reason for report..."
-                  maxLength={500}
-                  className="flex-1 rounded border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button
-                  disabled={reportLoading || reportReason.trim().length < 5}
-                  onClick={async () => {
-                    setReportLoading(true);
-                    try {
-                      const res = await fetch(`/api/posts/${post.id}/report`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ reason: reportReason }),
-                      });
-                      if (res.ok) {
-                        setReportSubmitted(true);
-                        setShowReport(false);
-                      }
-                    } catch { /* silent */ }
-                    setReportLoading(false);
-                  }}
-                  className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {reportLoading ? "..." : "Submit"}
-                </button>
-              </div>
-            )}
             {post.decisionReason && (
               <div className="mt-1.5">
                 <button

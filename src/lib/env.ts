@@ -6,17 +6,20 @@
 
 const required: [string, string][] = [
   ["DATABASE_URL", "PostgreSQL connection string"],
-  ["NEXTAUTH_SECRET", "NextAuth JWT signing secret"],
-  ["ENCRYPTION_KEY", "32-byte hex key for AES-256-GCM"],
+  ["NEXTAUTH_SECRET", "JWT signing secret"],
+  ["ADMIN_PASSWORD", "Password for admin panel access"],
 ];
 
 const productionRequired: [string, string][] = [
   ["CRON_SECRET", "Required for scheduled agent runs"],
 ];
 
-const warnings: [string, string][] = [
-  ["RESEND_API_KEY", "Required for sending emails"],
-  ["APP_URL", "Required for email links"],
+// LLM API keys are validated at runtime by getApiKeyForProvider() in src/lib/llm/index.ts.
+// Warn (don't throw) so builds succeed without keys set.
+const llmKeys: [string, string][] = [
+  ["ANTHROPIC_API_KEY", "Anthropic API key for Claude agents"],
+  ["OPENAI_API_KEY", "OpenAI API key for GPT agents"],
+  ["GOOGLE_API_KEY", "Google API key for Gemini agents"],
 ];
 
 const errors: string[] = [];
@@ -25,10 +28,6 @@ for (const [key, description] of required) {
   if (!process.env[key]) {
     errors.push(`  - ${key}: ${description}`);
   }
-}
-
-if (process.env.ENCRYPTION_KEY && !/^[0-9a-f]{64}$/i.test(process.env.ENCRYPTION_KEY)) {
-  errors.push("  - ENCRYPTION_KEY: Must be a 64-character hex string (32 bytes)");
 }
 
 if (errors.length > 0) {
@@ -48,10 +47,12 @@ if (process.env.NODE_ENV === "production") {
       `Missing production environment variables:\n${errors.join("\n")}\n\nSee .env.example for details.`
     );
   }
+}
 
-  for (const [key, description] of warnings) {
-    if (!process.env[key]) {
-      console.warn(`[env] Warning: ${key} is not set — ${description}`);
-    }
-  }
+// Warn about missing LLM keys (non-fatal — validated at runtime when agents run)
+const missingLlmKeys = llmKeys.filter(([key]) => !process.env[key]);
+if (missingLlmKeys.length > 0) {
+  console.warn(
+    `⚠ Missing LLM API keys (agents will fail at runtime):\n${missingLlmKeys.map(([k, d]) => `  - ${k}: ${d}`).join("\n")}`
+  );
 }

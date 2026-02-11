@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
-import { decrypt } from "@/lib/encryption";
-import { callLLM, LLMResult } from "@/lib/llm";
+import { callLLM, getApiKeyForProvider, LLMResult } from "@/lib/llm";
 import {
   buildBrowseMessages,
   buildMessages,
@@ -13,7 +12,6 @@ import { checkAndRecordAgentPost } from "@/lib/agent-limits";
 import { broadcastToThread } from "@/lib/sse";
 import { createReplyNotifications } from "@/lib/notifications";
 import { createMentionNotifications } from "@/lib/mentions";
-import { notifyWatchersAndFollowers } from "@/lib/watch-notifications";
 import { rankFeed, FeedCandidate } from "@/lib/feed-ranker";
 import { logger } from "@/lib/logger";
 import { RunResult } from "@/types";
@@ -331,9 +329,6 @@ export async function runAgent(agentId: string): Promise<RunResult> {
       model: true,
       isActive: true,
       deletedAt: true,
-      apiKeyEncrypted: true,
-      apiKeyIv: true,
-      apiKeyTag: true,
       userId: true,
       user: { select: { isAdmin: true } },
     },
@@ -367,8 +362,8 @@ export async function runAgent(agentId: string): Promise<RunResult> {
     }
   }
 
-  // Decrypt API key
-  const apiKey = decrypt(agent.apiKeyEncrypted, agent.apiKeyIv, agent.apiKeyTag);
+  // Get API key from environment
+  const apiKey = getApiKeyForProvider(agent.provider);
 
   // Step 1: Browse & Decide
   const { worldState, notificationIds } = await gatherWorldState(agentId);
@@ -509,13 +504,30 @@ async function executeNewThread(
   title = title.slice(0, 200);
   body = body.slice(0, 50000);
 
-  // Guard against empty body (e.g. Gemini Flash sometimes returns title only)
-  if (!body.trim()) {
-    return {
-      action: "new_thread",
-      posted: false,
-      reason: "Agent produced a title but no post body",
-    };
+  // If the LLM returned no body or a truncated fragment (common with Gemini Flash),
+  // make a follow-up call asking it to write the opening post for that title.
+  const bodyTooShort = !body.trim() || (body.trim().length < 100 && !/[.!?…]$/.test(body.trim()));
+  if (bodyTooShort) {
+    if (!isAdminAgent && !(await checkGlobalRateLimit())) {
+      return { action: "rate_limited", posted: false, reason: "Global rate limit exceeded" };
+    }
+
+    const followUp: { role: "system" | "user"; content: string }[] = [
+      ...messages,
+      { role: "user" as const, content: `Write the opening post for a thread titled "${title}". Just the post body — 1-2 short paragraphs, no title line.` },
+    ];
+    const bodyResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, followUp);
+    await recordTokenUsage(agent.id, bodyResult.totalTokens);
+    body = bodyResult.text?.trim() || "";
+
+    if (!body) {
+      return {
+        action: "new_thread",
+        posted: false,
+        reason: "Agent produced a title but no post body",
+      };
+    }
+    body = body.slice(0, 50000);
   }
 
   // Create thread and opening post atomically.
@@ -560,15 +572,6 @@ async function executeNewThread(
     ...post,
     createdAt: post.createdAt.toISOString(),
   });
-
-  // Notify watchers and followers (fire-and-forget)
-  notifyWatchersAndFollowers({
-    threadId: thread.id,
-    agentId: agent.id,
-    agentName: agent.name,
-    postId: post.id,
-    forumSlug: forum.slug,
-  }).catch(() => {});
 
   return {
     action: "new_thread",
@@ -766,15 +769,6 @@ async function executeReply(
     ...post,
     createdAt: post.createdAt.toISOString(),
   });
-
-  // Notify watchers and followers (fire-and-forget)
-  notifyWatchersAndFollowers({
-    threadId: thread.id,
-    agentId: agent.id,
-    agentName: agent.name,
-    postId: post.id,
-    forumSlug: thread.forum.slug,
-  }).catch(() => {});
 
   return {
     action: "reply",

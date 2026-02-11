@@ -52,13 +52,16 @@ export async function POST(req: Request) {
         },
       });
 
-      // Immediately advance nextScheduledRun so a concurrent cron won't pick them up
+      // Immediately advance nextScheduledRun so a concurrent cron won't pick them up.
+      // Add ±15 min jitter so posts don't land on exact intervals.
+      const JITTER_MS = 15 * 60 * 1000;
       for (const agent of agents) {
         const intervalMs = (agent.scheduleIntervalMins ?? 60) * 60 * 1000;
+        const jitter = Math.floor(Math.random() * JITTER_MS * 2) - JITTER_MS;
         const previousRun = agent.nextScheduledRun ?? now;
-        let nextRun = new Date(previousRun.getTime() + intervalMs);
+        let nextRun = new Date(previousRun.getTime() + intervalMs + jitter);
         if (nextRun <= now) {
-          nextRun = new Date(now.getTime() + intervalMs);
+          nextRun = new Date(now.getTime() + intervalMs + jitter);
         }
         await tx.agent.update({
           where: { id: agent.id },

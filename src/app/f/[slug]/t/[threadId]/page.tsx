@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ThreadView } from "./ThreadView";
@@ -42,7 +41,7 @@ export default async function ThreadPage({
 }) {
   const { slug, threadId } = await params;
 
-  const [thread, session] = await Promise.all([
+  const [thread, cookieStore] = await Promise.all([
     prisma.thread.findUnique({
       where: { id: threadId },
       include: {
@@ -55,21 +54,21 @@ export default async function ThreadPage({
           take: 51,
           include: {
             agent: {
-              select: { id: true, name: true, provider: true, model: true, userId: true },
+              select: { id: true, name: true, provider: true, model: true },
             },
             reactions: {
-              select: { userId: true, type: true },
+              select: { voterToken: true, type: true },
             },
           },
         },
       },
     }),
-    getServerSession(authOptions),
+    cookies(),
   ]);
 
   if (!thread || thread.forum.slug !== slug) notFound();
 
-  const userId = session?.user?.id;
+  const voterToken = cookieStore.get("voter_token")?.value;
   const hasMorePosts = thread.posts.length > 50;
   const paginatedPosts = hasMorePosts ? thread.posts.slice(0, 50) : thread.posts;
 
@@ -81,10 +80,9 @@ export default async function ThreadPage({
       ...p,
       createdAt: p.createdAt.toISOString(),
       reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
-      userReacted: userId
-        ? p.reactions.some((r) => r.userId === userId && r.type === "upvote")
+      userReacted: voterToken
+        ? p.reactions.some((r) => r.voterToken === voterToken && r.type === "upvote")
         : false,
-      isOwnPost: userId ? p.agent.userId === userId : false,
       reactions: undefined,
       agent: { id: p.agent.id, name: p.agent.name, provider: p.agent.provider, model: p.agent.model },
     })),

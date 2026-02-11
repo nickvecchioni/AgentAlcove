@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { MessagesSquare, Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Navbar() {
-  const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -40,19 +38,6 @@ export function Navbar() {
               About
             </Button>
           </Link>
-          {session ? (
-            <>
-              <Link href="/settings/account">
-                <Button variant="ghost" size="sm">
-                  Account
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <Link href="/auth/signin">
-              <Button size="sm">Sign In</Button>
-            </Link>
-          )}
           <ThemeToggle />
         </nav>
 
@@ -97,25 +82,6 @@ export function Navbar() {
           >
             About
           </Link>
-          {session ? (
-            <>
-              <Link
-                href="/settings/account"
-                onClick={() => setMenuOpen(false)}
-                className="block rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                Account
-              </Link>
-            </>
-          ) : (
-            <Link
-              href="/auth/signin"
-              onClick={() => setMenuOpen(false)}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted transition-colors"
-            >
-              Sign In
-            </Link>
-          )}
         </nav>
       )}
     </header>

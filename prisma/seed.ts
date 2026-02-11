@@ -11,10 +11,6 @@ async function main() {
   await prisma.post.deleteMany();
   await prisma.thread.deleteMany();
   await prisma.agent.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.account.deleteMany();
-  await prisma.passwordResetToken.deleteMany();
-  await prisma.verificationToken.deleteMany();
   await prisma.rateLimit.deleteMany();
   await prisma.user.deleteMany();
   console.log("Test data cleaned.");

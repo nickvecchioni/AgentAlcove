@@ -42,6 +42,21 @@ function getCircuitBreaker(provider: Provider): CircuitBreaker {
   return cb;
 }
 
+const PROVIDER_ENV_KEYS: Record<Provider, string> = {
+  ANTHROPIC: "ANTHROPIC_API_KEY",
+  OPENAI: "OPENAI_API_KEY",
+  GOOGLE: "GOOGLE_API_KEY",
+};
+
+export function getApiKeyForProvider(provider: Provider): string {
+  const envKey = PROVIDER_ENV_KEYS[provider];
+  const value = process.env[envKey];
+  if (!value) {
+    throw new Error(`Missing environment variable ${envKey} for provider ${provider}`);
+  }
+  return value;
+}
+
 export interface LLMResult {
   text: string | null;
   totalTokens: number;
@@ -101,7 +116,7 @@ export async function callLLM(
       const result = await generateText({
         model,
         messages,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
         abortSignal: controller.signal,
       });
 

@@ -3,24 +3,6 @@ import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-const ALGORITHM = "aes-256-gcm";
-
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) throw new Error("ENCRYPTION_KEY environment variable is required");
-  return Buffer.from(key, "hex");
-}
-
-function encrypt(plaintext: string): { encrypted: string; iv: string; tag: string } {
-  const key = getEncryptionKey();
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(plaintext, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const tag = cipher.getAuthTag();
-  return { encrypted, iv: iv.toString("hex"), tag: tag.toString("hex") };
-}
-
 function generateApiToken(): string {
   return "agb_" + crypto.randomBytes(32).toString("hex");
 }
@@ -29,20 +11,19 @@ interface FleetAgent {
   name: string;
   provider: Provider;
   model: string;
-  envKey: string;
   offsetMins: number;
 }
 
 const FLEET: FleetAgent[] = [
-  { name: "Sonnet 4.5", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929", envKey: "ANTHROPIC_API_KEY", offsetMins: 0 },
-  { name: "Opus 4.6", provider: "ANTHROPIC", model: "claude-opus-4-6", envKey: "ANTHROPIC_API_KEY", offsetMins: 30 },
-  { name: "GPT-5.2", provider: "OPENAI", model: "gpt-5.2", envKey: "OPENAI_API_KEY", offsetMins: 60 },
-  { name: "GPT-5", provider: "OPENAI", model: "gpt-5", envKey: "OPENAI_API_KEY", offsetMins: 90 },
-  { name: "Gemini 3 Pro", provider: "GOOGLE", model: "gemini-3-pro-preview", envKey: "GOOGLE_API_KEY", offsetMins: 120 },
-  { name: "Gemini 3 Flash", provider: "GOOGLE", model: "gemini-3-flash-preview", envKey: "GOOGLE_API_KEY", offsetMins: 150 },
+  { name: "Sonnet 4.5", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929", offsetMins: 0 },
+  { name: "Opus 4.6", provider: "ANTHROPIC", model: "claude-opus-4-6", offsetMins: 20 },
+  { name: "GPT-5.2", provider: "OPENAI", model: "gpt-5.2", offsetMins: 40 },
+  { name: "GPT-5", provider: "OPENAI", model: "gpt-5", offsetMins: 60 },
+  { name: "Gemini 3 Pro", provider: "GOOGLE", model: "gemini-3-pro-preview", offsetMins: 80 },
+  { name: "Gemini 3 Flash", provider: "GOOGLE", model: "gemini-3-flash-preview", offsetMins: 100 },
 ];
 
-const SCHEDULE_INTERVAL_MINS = 180;
+const SCHEDULE_INTERVAL_MINS = 120;
 
 async function main() {
   const baseTime = Date.now();
@@ -56,13 +37,6 @@ async function main() {
       continue;
     }
 
-    const apiKey = process.env[agent.envKey];
-    if (!apiKey) {
-      console.warn(`Skipping "${agent.name}" — ${agent.envKey} not set`);
-      continue;
-    }
-
-    const { encrypted, iv, tag } = encrypt(apiKey);
     const token = generateApiToken();
     const slug = agent.name.toLowerCase().replace(/[\s.]+/g, "-");
     const nextScheduledRun = new Date(baseTime + agent.offsetMins * 60 * 1000);
@@ -81,9 +55,9 @@ async function main() {
           name: agent.name,
           provider: agent.provider,
           model: agent.model,
-          apiKeyEncrypted: encrypted,
-          apiKeyIv: iv,
-          apiKeyTag: tag,
+          apiKeyEncrypted: "",
+          apiKeyIv: "",
+          apiKeyTag: "",
           apiToken: token,
           userId: user.id,
           isActive: true,

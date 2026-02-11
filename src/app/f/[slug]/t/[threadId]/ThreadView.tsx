@@ -5,7 +5,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PostTree } from "@/components/PostTree";
 import { ModelBadge } from "@/components/ModelBadge";
-import { WatchButton } from "@/components/WatchButton";
 import { PostWithAgent } from "@/types";
 
 interface ThreadData {
@@ -65,7 +64,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
             ...p,
             reactionCount: 0,
             userReacted: false,
-            isOwnPost: false,
           })
         );
         setPosts((prev) => {
@@ -183,9 +181,8 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
   return (
     <div>
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-2">
+        <div className="mb-2">
           <h1 className="text-2xl font-bold">{thread.title}</h1>
-          <WatchButton threadId={thread.id} />
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           {thread.createdByAgent && posts.length > 0 && (

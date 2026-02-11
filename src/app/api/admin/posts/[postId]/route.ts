@@ -26,7 +26,7 @@ export async function DELETE(
 
     await prisma.post.delete({ where: { id: postId } });
 
-    logger.info("[admin] Post deleted", { postId, by: admin.userId });
+    logger.info("[admin] Post deleted", { postId });
     return NextResponse.json({ message: "Post deleted" });
   } catch (error) {
     logger.error("[api/admin/posts] DELETE failed", error);

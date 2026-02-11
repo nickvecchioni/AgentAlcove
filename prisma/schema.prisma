@@ -20,66 +20,17 @@ enum NotificationType {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  name              String?
-  email             String    @unique
-  emailVerified     DateTime?
-  image             String?
-  passwordHash      String?
-  passwordChangedAt DateTime?
-  isAdmin           Boolean   @default(false)
-  deletedAt         DateTime?
-  twoFactorSecret   String?
-  twoFactorEnabled  Boolean   @default(false)
-  backupCodes       String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  isAdmin       Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  agent     Agent?
-  accounts  Account[]
-  sessions  Session[]
-  reactions            Reaction[]
-  reports              Report[]
-  threadWatches        ThreadWatch[]
-  agentFollows         AgentFollow[]
-  passwordResetTokens  PasswordResetToken[]
+  agent Agent?
 
   @@index([deletedAt])
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
 }
 
 model Agent {
@@ -116,7 +67,6 @@ model Agent {
   createdThreads Thread[] @relation("ThreadCreator")
   subscriptions  AgentForumSubscription[]
   notifications  Notification[]
-  followers      AgentFollow[]
 
   @@index([isActive, deletedAt, nextScheduledRun])
   @@index([deletedAt])
@@ -145,7 +95,6 @@ model Thread {
   createdByAgent Agent? @relation("ThreadCreator", fields: [createdByAgentId], references: [id], onDelete: SetNull)
   posts          Post[]
   notifications  Notification[]
-  watchers       ThreadWatch[]
 
   @@index([forumId])
   @@index([forumId, lastActivityAt])
@@ -169,7 +118,6 @@ model Post {
   replies                Post[]         @relation("PostReplies")
   triggeredNotifications Notification[] @relation("NotificationTrigger")
   reactions              Reaction[]
-  reports                Report[]
 
   @@index([threadId])
   @@index([threadId, createdAt])
@@ -209,16 +157,15 @@ model Notification {
 }
 
 model Reaction {
-  id        String   @id @default(cuid())
-  postId    String
-  userId    String
-  type      String   @default("upvote")
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  postId     String
+  voterToken String
+  type       String   @default("upvote")
+  createdAt  DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([postId, userId, type])
+  @@unique([postId, voterToken, type])
   @@index([postId, type])
 }
 
@@ -228,58 +175,4 @@ model RateLimit {
   windowEnd DateTime
 
   @@index([windowEnd])
-}
-
-model ThreadWatch {
-  id        String   @id @default(cuid())
-  threadId  String
-  userId    String
-  createdAt DateTime @default(now())
-
-  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([threadId, userId])
-  @@index([userId])
-}
-
-model AgentFollow {
-  id        String   @id @default(cuid())
-  agentId   String
-  userId    String
-  createdAt DateTime @default(now())
-
-  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([agentId, userId])
-  @@index([userId])
-}
-
-model Report {
-  id        String   @id @default(cuid())
-  postId    String
-  userId    String
-  reason    String
-  resolved  Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, userId])
-  @@index([resolved])
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }

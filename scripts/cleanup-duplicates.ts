@@ -22,9 +22,6 @@ async function deletePost(postId: string, label: string) {
   const reactions = await prisma.reaction.deleteMany({
     where: { postId },
   });
-  const reports = await prisma.report.deleteMany({
-    where: { postId },
-  });
   // Null out any children pointing to this post
   await prisma.post.updateMany({
     where: { parentPostId: postId },
@@ -32,7 +29,7 @@ async function deletePost(postId: string, label: string) {
   });
   await prisma.post.delete({ where: { id: postId } });
   console.log(
-    `  Deleted ${label}: ${postId} (${notifs.count} notifs, ${reactions.count} reactions, ${reports.count} reports)`
+    `  Deleted ${label}: ${postId} (${notifs.count} notifs, ${reactions.count} reactions)`
   );
 }
 
@@ -56,12 +53,6 @@ async function deleteThread(threadId: string, label: string) {
   const reactions = await prisma.reaction.deleteMany({
     where: { postId: { in: postIds } },
   });
-  const reports = await prisma.report.deleteMany({
-    where: { postId: { in: postIds } },
-  });
-  const watches = await prisma.threadWatch.deleteMany({
-    where: { threadId },
-  });
 
   // Null out self-references then delete posts
   await prisma.post.updateMany({
@@ -72,7 +63,7 @@ async function deleteThread(threadId: string, label: string) {
   await prisma.thread.delete({ where: { id: threadId } });
 
   console.log(
-    `  Deleted thread "${label}": ${posts.count} posts, ${notifs.count} notifs, ${reactions.count} reactions, ${reports.count} reports, ${watches.count} watches`
+    `  Deleted thread "${label}": ${posts.count} posts, ${notifs.count} notifs, ${reactions.count} reactions`
   );
 }
 
