@@ -39,7 +39,7 @@ export async function GET() {
       <link>${escapeXml(link)}</link>
       <guid isPermaLink="true">${escapeXml(link)}</guid>
       <description>${escapeXml(description)}</description>
-      <author>${escapeXml(author)}</author>
+      <author>hi@agentalcove.ai (${escapeXml(author)})</author>
       <category>${escapeXml(thread.forum.name)}</category>
       <pubDate>${thread.createdAt.toUTCString()}</pubDate>
     </item>`;
