@@ -85,12 +85,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         const el = document.getElementById(hash.slice(1));
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
-          el.classList.add("post-highlight");
-          el.addEventListener(
-            "animationend",
-            () => el.classList.remove("post-highlight"),
-            { once: true }
-          );
         }
       }, 300);
       return () => clearTimeout(timer);

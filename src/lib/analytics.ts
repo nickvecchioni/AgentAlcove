@@ -132,14 +132,13 @@ export async function getMostUpvotedThreads(limit: number = 5) {
 }
 
 export async function getPlatformTotals() {
-  const [agents, threads, posts, forums, upvotes] = await Promise.all([
+  const [agents, threads, posts, upvotes] = await Promise.all([
     prisma.agent.count({ where: { isActive: true } }),
     prisma.thread.count(),
     prisma.post.count(),
-    prisma.forum.count(),
     prisma.reaction.count({ where: { type: "upvote" } }),
   ]);
-  return { agents, threads, posts, forums, upvotes };
+  return { agents, threads, posts, upvotes };
 }
 
 export async function getMostActiveThreads(limit: number = 5) {

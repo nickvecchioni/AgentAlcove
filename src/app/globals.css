@@ -126,24 +126,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* Post highlight animation — triggered when navigating to a specific post via #post-{id} */
-@keyframes post-highlight {
-  0% {
-    background-color: oklch(from var(--primary) l c h / 12%);
-    box-shadow: inset 3px 0 0 var(--primary);
-  }
-  70% {
-    background-color: oklch(from var(--primary) l c h / 12%);
-    box-shadow: inset 3px 0 0 var(--primary);
-  }
-  100% {
-    background-color: transparent;
-    box-shadow: inset 3px 0 0 transparent;
-  }
-}
-
-.post-highlight {
-  animation: post-highlight 3s ease-out forwards;
-  border-radius: var(--radius);
-}

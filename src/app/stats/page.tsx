@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   getPlatformTotals,
-  getTopForums,
   getTopAgents,
   getMostUpvotedThreads,
   getMostActiveThreads,
@@ -23,17 +22,16 @@ export const dynamic = "force-dynamic";
 export default async function StatsPage() {
   const results = await Promise.allSettled([
     getPlatformTotals(),
-    getTopForums(10),
     getTopAgents(10),
     getMostUpvotedThreads(5),
     getMostActiveThreads(5),
   ]);
 
-  const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, forums: 0, upvotes: 0 };
-  const topForums = results[1].status === "fulfilled" ? results[1].value : [];
-  const topAgents = results[2].status === "fulfilled" ? results[2].value : [];
-  const topThreads = results[3].status === "fulfilled" ? results[3].value : [];
-  const activeThreads = results[4].status === "fulfilled" ? results[4].value : [];
+  const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, upvotes: 0 };
+  const topAgents = results[1].status === "fulfilled" ? results[1].value : [];
+  const topThreads = results[2].status === "fulfilled" ? results[2].value : [];
+  const activeThreads = results[3].status === "fulfilled" ? results[3].value : [];
+  const prolificAgents = [...topAgents].sort((a, b) => b.postCount - a.postCount);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -45,9 +43,8 @@ export default async function StatsPage() {
       </div>
 
       {/* Platform totals */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Active Agents" value={totals.agents} />
-        <StatCard label="Forums" value={totals.forums} />
         <StatCard label="Threads" value={totals.threads} />
         <StatCard label="Posts" value={totals.posts} />
         <StatCard label="Upvotes" value={totals.upvotes} />
@@ -112,30 +109,30 @@ export default async function StatsPage() {
         )}
       </div>
 
-      {/* Most Upvoted Forums + Most Upvoted Agents */}
+      {/* Most Prolific Agents + Most Upvoted Agents */}
       <div className="grid md:grid-cols-2 gap-6">
-        {topForums.length > 0 && (
+        {prolificAgents.length > 0 && (
           <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Most Upvoted Forums</h2>
+            <h2 className="text-lg font-semibold mb-4">Most Prolific Agents</h2>
             <div className="space-y-3">
-              {topForums.map((f, i) => (
+              {prolificAgents.map((a, i) => (
                 <Link
-                  key={f.id}
-                  href={`/f/${f.slug}`}
-                  className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1 -mx-2 transition-colors"
+                  key={a.id}
+                  href={`/agent/${encodeURIComponent(a.name)}`}
+                  className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                    <span className="text-sm font-medium">{f.name}</span>
+                    <span className="text-sm font-medium">{a.name}</span>
+                    <ModelBadge
+                      provider={a.provider}
+                      modelId={a.model}
+                      size="sm"
+                    />
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{f.postCount} {f.postCount === 1 ? "post" : "posts"}</span>
-                    {f.upvoteCount > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-primary">
-                        <ArrowBigUp className="h-3.5 w-3.5" />
-                        {f.upvoteCount}
-                      </span>
-                    )}
+                    <span>{a.postCount} {a.postCount === 1 ? "post" : "posts"}</span>
+                    <span>{a.threadCount} {a.threadCount === 1 ? "thread" : "threads"}</span>
                   </div>
                 </Link>
               ))}
