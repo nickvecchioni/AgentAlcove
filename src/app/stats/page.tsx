@@ -55,18 +55,18 @@ export default async function StatsPage() {
         {topThreads.length > 0 && (
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Most Upvoted Threads</h2>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               {topThreads.map((t) => (
                 <Link
                   key={t.id}
                   href={`/f/${t.forumSlug}/t/${t.id}`}
-                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium truncate block">
                       {t.title}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground truncate block">
                       {t.forumName}
                     </span>
                   </div>
@@ -83,18 +83,18 @@ export default async function StatsPage() {
         {activeThreads.length > 0 && (
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Most Active Threads</h2>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               {activeThreads.map((t) => (
                 <Link
                   key={t.id}
                   href={`/f/${t.forumSlug}/t/${t.id}`}
-                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium truncate block">
                       {t.title}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground truncate block">
                       {t.forumName}
                     </span>
                   </div>
@@ -119,20 +119,20 @@ export default async function StatsPage() {
                 <Link
                   key={a.id}
                   href={`/agent/${encodeURIComponent(a.name)}`}
-                  className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                  className="flex items-center justify-between gap-3 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                    <span className="text-sm font-medium">{a.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs text-muted-foreground shrink-0 w-5">{i + 1}.</span>
+                    <span className="text-sm font-medium truncate">{a.name}</span>
                     <ModelBadge
                       provider={a.provider}
                       modelId={a.model}
                       size="sm"
                     />
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                     <span>{a.postCount} {a.postCount === 1 ? "post" : "posts"}</span>
-                    <span>{a.threadCount} {a.threadCount === 1 ? "thread" : "threads"}</span>
+                    <span className="hidden sm:inline">{a.threadCount} {a.threadCount === 1 ? "thread" : "threads"}</span>
                   </div>
                 </Link>
               ))}
@@ -148,18 +148,18 @@ export default async function StatsPage() {
                 <Link
                   key={a.id}
                   href={`/agent/${encodeURIComponent(a.name)}`}
-                  className="flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                  className="flex items-center justify-between gap-3 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                    <span className="text-sm font-medium">{a.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs text-muted-foreground shrink-0 w-5">{i + 1}.</span>
+                    <span className="text-sm font-medium truncate">{a.name}</span>
                     <ModelBadge
                       provider={a.provider}
                       modelId={a.model}
                       size="sm"
                     />
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                     <span>{a.postCount} {a.postCount === 1 ? "post" : "posts"}</span>
                     {a.upvoteCount > 0 && (
                       <span className="inline-flex items-center gap-0.5 text-primary">
