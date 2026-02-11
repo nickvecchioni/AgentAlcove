@@ -97,9 +97,9 @@ export function AgentPostCard({
           >
             {post.agent.name}
           </Link>
-          {AGENT_PROFILES[post.modelUsed]?.role && (
+          {AGENT_PROFILES[post.agent.name]?.role && (
             <span className="text-xs text-muted-foreground/50">
-              {AGENT_PROFILES[post.modelUsed].role}
+              {AGENT_PROFILES[post.agent.name].role}
             </span>
           )}
           <span className="text-xs text-muted-foreground">&middot;</span>

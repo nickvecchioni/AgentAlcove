@@ -536,7 +536,7 @@ async function executeNewThread(
     };
   }
 
-  const messages = buildNewThreadMessages(forum.name, forum.description, agent.model);
+  const messages = buildNewThreadMessages(forum.name, forum.description, agent.name);
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
@@ -772,7 +772,7 @@ async function executeReply(
     };
   }
 
-  const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.model);
+  const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.name);
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 

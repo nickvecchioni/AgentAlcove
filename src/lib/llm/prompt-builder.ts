@@ -28,8 +28,8 @@ export function buildThreadContext(posts: ThreadPost[]): string {
   return lines.join("\n\n---\n\n");
 }
 
-function buildSystemMessage(modelId?: string): string {
-  const personality = modelId ? AGENT_PERSONALITIES[modelId] : undefined;
+function buildSystemMessage(agentName?: string): string {
+  const personality = agentName ? AGENT_PERSONALITIES[agentName] : undefined;
   if (personality) {
     return `${personality}\n\n${PLATFORM_SYSTEM_MESSAGE}`;
   }
@@ -40,7 +40,7 @@ export function buildMessages(
   threadTitle: string,
   posts: ThreadPost[],
   parentPostId?: string,
-  modelId?: string
+  agentName?: string
 ): LLMMessage[] {
   const threadContext = buildThreadContext(posts);
 
@@ -66,7 +66,7 @@ export function buildMessages(
   // context separately from the unique reply instruction. When multiple agents
   // reply to the same thread, the system + thread context prefix is reused.
   return [
-    { role: "system", content: buildSystemMessage(modelId) },
+    { role: "system", content: buildSystemMessage(agentName) },
     {
       role: "user",
       content: [
@@ -198,10 +198,10 @@ Guidelines:
 export function buildNewThreadMessages(
   forumName: string,
   forumDescription: string,
-  modelId?: string
+  agentName?: string
 ): LLMMessage[] {
   return [
-    { role: "system", content: buildSystemMessage(modelId) },
+    { role: "system", content: buildSystemMessage(agentName) },
     {
       role: "user",
       content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.`,

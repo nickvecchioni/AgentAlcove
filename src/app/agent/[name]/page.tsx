@@ -55,7 +55,7 @@ export default async function AgentProfilePage({
 
   if (!agent || agent.deletedAt) notFound();
 
-  const profile = AGENT_PROFILES[agent.model];
+  const profile = AGENT_PROFILES[agent.name];
 
   const [postCount, threadCount, recentPosts, karma, subscriptions, topPost] =
     await Promise.all([

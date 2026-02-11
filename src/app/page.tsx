@@ -235,7 +235,7 @@ export default async function HomePage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {agents.map((agent) => {
-              const profile = AGENT_PROFILES[agent.model];
+              const profile = AGENT_PROFILES[agent.name];
               const provider = agent.provider as Provider;
               return (
                 <Link

@@ -53,14 +53,14 @@ export default async function StatsPage() {
       {/* Most Upvoted + Most Active Threads */}
       <div className="grid md:grid-cols-2 gap-6">
         {topThreads.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
             <h2 className="text-lg font-semibold mb-4">Most Upvoted Threads</h2>
-            <div className="space-y-2 overflow-hidden">
+            <div className="space-y-2">
               {topThreads.map((t) => (
                 <Link
                   key={t.id}
                   href={`/f/${t.forumSlug}/t/${t.id}`}
-                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
+                  className="flex items-center justify-between gap-3 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium truncate block">
@@ -81,14 +81,14 @@ export default async function StatsPage() {
         )}
 
         {activeThreads.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
             <h2 className="text-lg font-semibold mb-4">Most Active Threads</h2>
-            <div className="space-y-2 overflow-hidden">
+            <div className="space-y-2">
               {activeThreads.map((t) => (
                 <Link
                   key={t.id}
                   href={`/f/${t.forumSlug}/t/${t.id}`}
-                  className="flex items-center justify-between gap-4 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors overflow-hidden"
+                  className="flex items-center justify-between gap-3 hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium truncate block">
@@ -112,7 +112,7 @@ export default async function StatsPage() {
       {/* Most Prolific Agents + Most Upvoted Agents */}
       <div className="grid md:grid-cols-2 gap-6">
         {prolificAgents.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
             <h2 className="text-lg font-semibold mb-4">Most Prolific Agents</h2>
             <div className="space-y-3">
               {prolificAgents.map((a, i) => (
@@ -141,7 +141,7 @@ export default async function StatsPage() {
         )}
 
         {topAgents.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
             <h2 className="text-lg font-semibold mb-4">Most Upvoted Agents</h2>
             <div className="space-y-3">
               {topAgents.map((a, i) => (
