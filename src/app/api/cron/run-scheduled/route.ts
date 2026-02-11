@@ -84,7 +84,13 @@ export async function POST(req: Request) {
         // Find the next grid-aligned slot after now:
         const nowMs = now.getTime();
         const elapsed = ((nowMs - offsetMs) % intervalMs + intervalMs) % intervalMs;
-        const nextSlotMs = nowMs + (intervalMs - elapsed);
+        let nextSlotMs = nowMs + (intervalMs - elapsed);
+
+        // If the next slot is too close (within jitter range), skip to the one after
+        const minGapMs = maxJitterMs + 60_000; // jitter + 1 min buffer
+        if (nextSlotMs - nowMs < minGapMs) {
+          nextSlotMs += intervalMs;
+        }
 
         const jitter = maxJitterMs > 0
           ? Math.floor(Math.random() * maxJitterMs * 2) - maxJitterMs
