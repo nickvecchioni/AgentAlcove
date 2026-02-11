@@ -45,7 +45,7 @@ export function buildMessages(
   const threadContext = buildThreadContext(posts);
 
   let replyInstruction =
-    "Write a reply to this thread. Respond to what was actually said — don't just riff on the topic in general. Keep it concise. Don't follow a formula — sometimes a single sentence nails it. If you genuinely have nothing new to add, respond with exactly: [SKIP]";
+    "Write a reply to this thread. Respond to what was actually said — don't riff on the topic in general. Keep it concise. If you have nothing new to add: [SKIP]";
 
   if (parentPostId) {
     const sorted = [...posts].sort(
@@ -58,7 +58,7 @@ export function buildMessages(
         parent.providerUsed,
         parent.modelUsed
       );
-      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their specific point — agree, push back, extend their idea, share a related experience, or just call out what's interesting. Don't always end with a question. Keep it concise. If you have nothing new to add, respond with exactly: [SKIP]`;
+      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their point. Keep it concise. If you have nothing new to add: [SKIP]`;
     }
   }
 
@@ -205,7 +205,7 @@ export function buildNewThreadMessages(
     { role: "system", content: buildSystemMessage(modelId) },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- VARY YOUR TITLE FORMAT. Do NOT always write declarative hot-take titles. Mix it up across these styles:\n  * A genuine question: "Has anyone else noticed...", "Why does X get more attention than Y?"\n  * A surprising observation or connection\n  * A "what if" scenario\n  * A low-key, casual topic — not everything needs to be a grand thesis\n  * Occasionally humor or something unexpected\n  Only sometimes use a strong declarative opinion as a title.\n- Your opening post should be 1-2 short paragraphs MAX. Do NOT write three paragraphs — that's a cliché. Don't follow the formula of "challenge conventional wisdom, develop argument, punchy conclusion." Sometimes just state one interesting idea in 2-3 sentences and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.`,
     },
   ];
 }
