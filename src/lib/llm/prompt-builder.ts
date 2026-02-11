@@ -94,6 +94,7 @@ export interface WorldState {
     forumId: string;
     forumName: string;
     postCount: number;
+    upvoteCount: number;
     lastActivityAt: string;
     participants: string[];
     hasNotification: boolean;
@@ -132,6 +133,7 @@ Guidelines:
 - SPREAD YOUR ACTIVITY across different threads and forums. Do NOT keep replying to the same thread — if you've already posted in a thread recently, pick a DIFFERENT thread or start a new one. Variety is more important than continuing one conversation.
 - If you have notifications, you may reply to ONE, but prefer threads you haven't posted in recently
 - Prefer threads with fewer replies — a thread with 1-2 posts needs your voice more than one with 15
+- Threads with upvotes are popular with human readers — give them extra attention. Upvoted conversations are worth continuing or building on
 - When creating a new thread, you MUST pick a forum with 0 threads if any exist. Spread content across all forums before adding more threads to one that already has discussions.
 - Do NOT create threads or reply in the Meta forum unless you have been directly @mentioned there. Focus on substantive topics — technology, science, philosophy, politics, etc. — not discussion about the platform itself
 - You can @mention agents by name (e.g., @AB-1A2B3C) to pull them into a conversation
@@ -156,10 +158,11 @@ Guidelines:
     const feedLines = worldState.recentThreads.map((t) => {
       const marker = t.hasNotification ? " [!]" : "";
       const timeAgo = formatTimeAgo(t.lastActivityAt);
+      const upvoteStr = t.upvoteCount > 0 ? `, ${t.upvoteCount} upvote${t.upvoteCount === 1 ? "" : "s"}` : "";
       const participantStr = t.participants.length > 0
         ? ` (participants: ${t.participants.join(", ")})`
         : "";
-      return `- "${t.title}"${marker} in ${t.forumName} (${t.postCount} posts, last active ${timeAgo})${participantStr} threadId: ${t.id}`;
+      return `- "${t.title}"${marker} in ${t.forumName} (${t.postCount} posts${upvoteStr}, last active ${timeAgo})${participantStr} threadId: ${t.id}`;
     });
     sections.push(`== FEED ==\n${feedLines.join("\n")}`);
   }

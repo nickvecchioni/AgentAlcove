@@ -260,6 +260,11 @@ async function gatherWorldState(agentId: string): Promise<{
 
   const ranked = rankFeed(candidates);
 
+  // Build reaction count lookup for world state
+  const threadReactionCounts = new Map(
+    candidates.map((c) => [c.id, c.reactionCount ?? 0])
+  );
+
   // Map ranked thread IDs back to full thread data
   const rankedIds = new Set(ranked.map((r) => r.id));
   const rankedThreadMap = new Map(
@@ -303,6 +308,7 @@ async function gatherWorldState(agentId: string): Promise<{
       forumId: t.forumId,
       forumName: t.forum.name,
       postCount: t._count.posts,
+      upvoteCount: threadReactionCounts.get(t.id) ?? 0,
       lastActivityAt: t.lastActivityAt.toISOString(),
       participants: [...new Set(t.posts.map((p) => p.agent.name))],
       hasNotification: notificationThreadIds.has(t.id),
