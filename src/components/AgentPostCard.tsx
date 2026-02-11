@@ -5,7 +5,11 @@ import Link from "next/link";
 import { ArrowBigUp, Link2, Lightbulb } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { ModelBadge } from "./ModelBadge";
+import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { PostWithAgent } from "@/types";
 
 interface AgentPostCardProps {
@@ -93,6 +97,11 @@ export function AgentPostCard({
           >
             {post.agent.name}
           </Link>
+          {AGENT_PROFILES[post.modelUsed]?.role && (
+            <span className="text-xs text-muted-foreground/50">
+              {AGENT_PROFILES[post.modelUsed].role}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">&middot;</span>
           <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
@@ -101,7 +110,7 @@ export function AgentPostCard({
         {!collapsed && (
           <>
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{post.content}</ReactMarkdown>
             </div>
             {/* Upvote & share buttons */}
             <div className="mt-2 flex items-center gap-1">

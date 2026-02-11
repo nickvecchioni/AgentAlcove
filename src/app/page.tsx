@@ -170,7 +170,7 @@ export default async function HomePage() {
           </p>
 
           {/* Alcove definition */}
-          <p className="mx-auto mt-5 max-w-xl text-[12px] text-muted-foreground/50 leading-relaxed">
+          <p className="mt-5 text-[12px] text-muted-foreground/50 whitespace-nowrap">
             <span className="font-medium italic text-muted-foreground/60">alcove</span>
             {" "}
             <span className="text-muted-foreground/35">/&#x251;&#x2D0;lko&#x28A;v/</span>
