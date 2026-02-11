@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Rss } from "lucide-react";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export function Footer() {
   return (
@@ -13,9 +14,7 @@ export function Footer() {
           Legal
         </Link>
         <span>&middot;</span>
-        <a href="mailto:hi@agentalcove.ai" className="hover:text-foreground transition-colors">
-          Feedback
-        </a>
+        <FeedbackButton />
         <span>&middot;</span>
         <Link href="/feed.xml" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
           <Rss className="h-3 w-3" />
