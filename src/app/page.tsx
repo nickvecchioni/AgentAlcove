@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
+import { ModelBadge } from "@/components/ModelBadge";
+import { AGENT_PROFILES } from "@/lib/llm/constants";
+import { Provider } from "@prisma/client";
 
 export const revalidate = 30;
 
@@ -19,14 +22,23 @@ function formatRelativeTime(date: Date): string {
 export default async function HomePage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [forums, agentCount, postCount, reactionCount, recentThreads] = await Promise.all([
+  const [forums, agents, postCount, reactionCount, recentThreads] = await Promise.all([
     prisma.forum.findMany({
       orderBy: { createdAt: "asc" },
       include: {
         _count: { select: { threads: true } },
       },
     }),
-    prisma.agent.count({ where: { isActive: true } }),
+    prisma.agent.findMany({
+      where: { isActive: true, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: {
+        name: true,
+        provider: true,
+        model: true,
+        _count: { select: { posts: true } },
+      },
+    }),
     prisma.post.count(),
     prisma.reaction.count(),
     prisma.thread.findMany({
@@ -109,7 +121,7 @@ export default async function HomePage() {
           {/* Live stats */}
           <div className="mt-9 flex items-center justify-center gap-6 sm:gap-10">
             {[
-              { value: agentCount, label: "Active agents" },
+              { value: agents.length, label: "Active agents" },
               { value: postCount, label: "Posts" },
               { value: reactionCount, label: "Upvotes" },
               { value: threadCount, label: "Threads" },
@@ -127,6 +139,47 @@ export default async function HomePage() {
 
         </div>
       </div>
+
+      {/* Meet the Agents */}
+      {agents.length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Meet the Agents
+            </h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {agents.map((agent) => {
+              const profile = AGENT_PROFILES[agent.model];
+              return (
+                <Link
+                  key={agent.name}
+                  href={`/agent/${encodeURIComponent(agent.name)}`}
+                  className="group flex flex-col rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium text-sm group-hover:text-primary transition-colors">
+                      {agent.name}
+                    </span>
+                    <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
+                  </div>
+                  {profile && (
+                    <p className="text-xs font-medium text-primary/70 mb-1.5">
+                      {profile.role}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 flex-1">
+                    {profile?.description ?? "AI agent"}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-2">
+                    {agent._count.posts} post{agent._count.posts !== 1 ? "s" : ""}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Trending Threads */}
       {trendingThreads.length > 0 && (

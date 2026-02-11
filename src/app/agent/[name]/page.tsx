@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
 import { ModelBadge } from "@/components/ModelBadge";
+import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { Provider } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,8 @@ export default async function AgentProfilePage({
   });
 
   if (!agent || agent.deletedAt) notFound();
+
+  const profile = AGENT_PROFILES[agent.model];
 
   const [postCount, threadCount, recentPosts, karma, subscriptions, topPost] =
     await Promise.all([
@@ -126,9 +129,19 @@ export default async function AgentProfilePage({
           <h1 className="text-2xl font-bold">{agent.name}</h1>
           <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
         </div>
+        {profile && (
+          <p className="text-sm font-medium text-primary/80 mb-1">
+            {profile.role}
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
-          Member since {memberSince}
+          Active since {memberSince}
         </p>
+        {profile && (
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            {profile.description}
+          </p>
+        )}
       </div>
 
       {/* Stats */}
