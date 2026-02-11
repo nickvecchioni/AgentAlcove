@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, type ModelMessage } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -57,6 +57,16 @@ export function getApiKeyForProvider(provider: Provider): string {
   return value;
 }
 
+export interface LLMTextPart {
+  type: "text";
+  text: string;
+}
+
+export interface LLMMessage {
+  role: "system" | "user";
+  content: string | LLMTextPart[];
+}
+
 export interface LLMResult {
   text: string | null;
   totalTokens: number;
@@ -99,11 +109,51 @@ export function createLLMProvider(
   }
 }
 
+/**
+ * Apply Anthropic prompt caching to reduce input token costs by up to 90%.
+ *
+ * Adds `cacheControl: { type: "ephemeral" }` breakpoints so Anthropic caches
+ * the static prefix (system message + thread context) across calls.
+ *
+ * - System messages are marked for caching (shared across all runs for same model)
+ * - For user messages with content parts, all parts except the last are cached
+ *   (the last part is the unique reply instruction; preceding parts are shared
+ *   thread context that other agents replying to the same thread can reuse)
+ *
+ * OpenAI and Google handle caching automatically — no markers needed.
+ */
+function applyAnthropicCaching(messages: LLMMessage[]): unknown[] {
+  const cacheOpt = { anthropic: { cacheControl: { type: "ephemeral" } } };
+
+  return messages.map((msg) => {
+    // Cache system messages (personality + platform prompt)
+    if (msg.role === "system") {
+      return { ...msg, providerOptions: cacheOpt };
+    }
+
+    // For user messages with content parts (reply calls),
+    // cache the thread context parts but not the final instruction
+    if (msg.role === "user" && Array.isArray(msg.content) && msg.content.length > 1) {
+      const parts = msg.content;
+      return {
+        ...msg,
+        content: parts.map((part, i) =>
+          i < parts.length - 1
+            ? { ...part, providerOptions: cacheOpt }
+            : part
+        ),
+      };
+    }
+
+    return msg;
+  });
+}
+
 export async function callLLM(
   provider: Provider,
   apiKey: string,
   modelId: string,
-  messages: { role: "system" | "user"; content: string }[]
+  messages: LLMMessage[]
 ): Promise<LLMResult> {
   const cb = getCircuitBreaker(provider);
 
@@ -112,10 +162,16 @@ export async function callLLM(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
 
+    // Apply prompt caching for Anthropic (90% input cost reduction on cache hits).
+    // OpenAI and Google handle prefix caching automatically.
+    const finalMessages = provider === "ANTHROPIC"
+      ? applyAnthropicCaching(messages)
+      : messages;
+
     try {
       const result = await generateText({
         model,
-        messages,
+        messages: finalMessages as ModelMessage[],
         maxOutputTokens: 2048,
         abortSignal: controller.signal,
       });

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { callLLM, getApiKeyForProvider, LLMResult } from "@/lib/llm";
+import { callLLM, getApiKeyForProvider, LLMResult, LLMMessage } from "@/lib/llm";
 import {
   buildBrowseMessages,
   buildMessages,
@@ -41,7 +41,7 @@ async function callLLMWithRetry(
   provider: Provider,
   apiKey: string,
   modelId: string,
-  messages: { role: "system" | "user"; content: string }[]
+  messages: LLMMessage[]
 ): Promise<LLMResult> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
@@ -518,7 +518,7 @@ async function executeNewThread(
       return { action: "rate_limited", posted: false, reason: "Global rate limit exceeded" };
     }
 
-    const followUp: { role: "system" | "user"; content: string }[] = [
+    const followUp: LLMMessage[] = [
       ...messages,
       { role: "user" as const, content: `Write the opening post for a thread titled "${title}". Just the post body — 1-2 short paragraphs, no title line.` },
     ];
