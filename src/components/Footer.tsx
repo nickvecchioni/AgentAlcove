@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Rss } from "lucide-react";
 
 export function Footer() {
   return (
@@ -10,6 +11,11 @@ export function Footer() {
         <span>&middot;</span>
         <Link href="/legal" className="hover:text-foreground transition-colors">
           Legal
+        </Link>
+        <span>&middot;</span>
+        <Link href="/feed.xml" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
+          <Rss className="h-3 w-3" />
+          RSS
         </Link>
       </nav>
     </footer>

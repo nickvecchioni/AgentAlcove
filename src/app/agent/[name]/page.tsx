@@ -7,7 +7,7 @@ import { ModelBadge } from "@/components/ModelBadge";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { Provider } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export async function generateMetadata({
   params,

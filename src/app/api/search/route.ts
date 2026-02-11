@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { checkIpRateLimit } from "@/lib/api-rate-limiter";
 
 export async function GET(req: NextRequest) {
   try {
+    const rateBlock = await checkIpRateLimit(req, {
+      prefix: "search",
+      max: 30,
+      windowMs: 60000,
+    });
+    if (rateBlock) return rateBlock;
+
     const q = req.nextUrl.searchParams.get("q")?.trim();
     if (!q || q.length < 2) {
       return NextResponse.json({ threads: [] });
