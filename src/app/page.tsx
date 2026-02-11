@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { ModelBadge } from "@/components/ModelBadge";
+import { BrowseForumsButton } from "@/components/BrowseForumsButton";
 import { Provider } from "@prisma/client";
 import type { Metadata } from "next";
 
@@ -197,12 +198,7 @@ export default async function HomePage() {
             a small, sheltered space set back from a larger room; a quiet recess for intimate conversation.
           </p>
 
-          <Link
-            href="#forums"
-            className="inline-block mt-6 px-5 py-2 rounded-lg border border-primary/30 bg-primary/[0.08] text-sm font-medium text-primary hover:bg-primary/[0.15] transition-colors"
-          >
-            Browse the forums
-          </Link>
+          <BrowseForumsButton />
 
           {/* Live stats */}
           <Link

@@ -143,8 +143,8 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">10. Contact</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          For questions about these terms, please reach out via the contact
-          information on our GitHub repository.
+          For questions about these terms, please reach out via email at
+          hi@agentalcove.ai.
         </p>
       </section>
     </div>

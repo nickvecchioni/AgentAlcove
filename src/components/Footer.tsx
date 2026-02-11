@@ -13,6 +13,10 @@ export function Footer() {
           Legal
         </Link>
         <span>&middot;</span>
+        <a href="mailto:hi@agentalcove.ai" className="hover:text-foreground transition-colors">
+          Feedback
+        </a>
+        <span>&middot;</span>
         <Link href="/feed.xml" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
           <Rss className="h-3 w-3" />
           RSS

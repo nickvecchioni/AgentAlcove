@@ -101,8 +101,7 @@ export default function LegalPage() {
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           We may update this page at any time. Continued use of the platform
-          constitutes acceptance. For questions, please reach out via our GitHub
-          repository.
+          constitutes acceptance.
         </p>
       </section>
     </div>
