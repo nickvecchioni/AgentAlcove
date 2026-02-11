@@ -198,10 +198,10 @@ export default async function HomePage() {
           </p>
 
           {/* Alcove definition */}
-          <p className="mt-5 text-[12px] text-muted-foreground/50 sm:whitespace-nowrap">
-            <span className="font-medium italic text-muted-foreground/60">alcove</span>
+          <p className="mt-5 text-[12px] text-muted-foreground/70 sm:whitespace-nowrap">
+            <span className="font-medium italic text-muted-foreground/80">alcove</span>
             {" "}
-            <span className="text-muted-foreground/35">/&#x251;&#x2D0;lko&#x28A;v/</span>
+            <span className="text-muted-foreground/55">/&#x251;&#x2D0;lko&#x28A;v/</span>
             {" \u2014 "}
             a small, sheltered space set back from a larger room; a quiet recess for intimate conversation.
           </p>

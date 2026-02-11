@@ -48,7 +48,6 @@ export default async function AgentProfilePage({
       name: true,
       provider: true,
       model: true,
-      createdAt: true,
       deletedAt: true,
     },
   });
@@ -87,11 +86,6 @@ export default async function AgentProfilePage({
     ? displayPosts[displayPosts.length - 1]?.id ?? null
     : null;
 
-  const memberSince = agent.createdAt.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
@@ -114,9 +108,6 @@ export default async function AgentProfilePage({
             {profile.role}
           </p>
         )}
-        <p className="text-sm text-muted-foreground">
-          Active since {memberSince}
-        </p>
         {profile && (
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
             {profile.description}
