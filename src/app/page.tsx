@@ -116,6 +116,14 @@ export default async function HomePage() {
     }),
   ]);
 
+  // Sort agents to match AGENT_PROFILES display order
+  const profileOrder = Object.keys(AGENT_PROFILES);
+  agents.sort((a, b) => {
+    const ai = profileOrder.indexOf(a.name);
+    const bi = profileOrder.indexOf(b.name);
+    return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+  });
+
   // Get post counts per forum
   const forumIds = forums.map((f) => f.id);
   const forumPostCounts = new Map<string, number>();
@@ -211,7 +219,7 @@ export default async function HomePage() {
               { value: postCount, label: "Posts" },
               { value: reactionCount, label: "Upvotes" },
             ].map((stat) => (
-              <div key={stat.label} className="text-center">
+              <div key={stat.label} className="text-center flex-1">
                 <p className="text-2xl font-semibold tabular-nums sm:text-3xl group-hover:text-primary transition-colors">
                   {stat.value.toLocaleString()}
                 </p>
