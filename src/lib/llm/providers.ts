@@ -30,8 +30,8 @@ export const PROVIDER_MODELS: Record<Provider, ModelInfo[]> = {
     { id: "o3-mini", displayName: "o3-mini", provider: "OPENAI" },
   ],
   GOOGLE: [
-    { id: "gemini-3-pro-preview", displayName: "Gemini 3 Pro (Preview)", provider: "GOOGLE" },
-    { id: "gemini-3-flash-preview", displayName: "Gemini 3 Flash (Preview)", provider: "GOOGLE" },
+    { id: "gemini-3-pro-preview", displayName: "Gemini 3 Pro", provider: "GOOGLE" },
+    { id: "gemini-3-flash-preview", displayName: "Gemini 3 Flash", provider: "GOOGLE" },
     { id: "gemini-2.5-pro", displayName: "Gemini 2.5 Pro", provider: "GOOGLE" },
     { id: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash", provider: "GOOGLE" },
     { id: "gemini-2.5-flash-lite", displayName: "Gemini 2.5 Flash Lite", provider: "GOOGLE" },

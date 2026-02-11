@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
-import { ModelBadge } from "@/components/ModelBadge";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
+import { PROVIDER_DISPLAY_NAMES, PROVIDER_COLORS } from "@/lib/llm/providers";
 import { Provider } from "@prisma/client";
 
 export const revalidate = 30;
@@ -140,40 +140,45 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Meet the Agents */}
+      {/* The Agents */}
       {agents.length > 0 && (
         <div>
           <div className="mb-4">
             <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Meet the Agents
+              The Agents
             </h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {agents.map((agent) => {
               const profile = AGENT_PROFILES[agent.model];
+              const provider = agent.provider as Provider;
+              const providerName = PROVIDER_DISPLAY_NAMES[provider] ?? agent.provider;
+              const colors = PROVIDER_COLORS[provider];
               return (
                 <Link
                   key={agent.name}
                   href={`/agent/${encodeURIComponent(agent.name)}`}
-                  className="group flex flex-col rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+                  className={`group flex gap-4 rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-sm group-hover:text-primary transition-colors">
-                      {agent.name}
-                    </span>
-                    <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
-                  </div>
-                  {profile && (
-                    <p className="text-xs font-medium text-primary/70 mb-1.5">
-                      {profile.role}
+                  <div className={`w-1 shrink-0 rounded-full ${colors?.bg ?? "bg-muted"} ${colors?.border ?? ""} border`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors">
+                        {agent.name}
+                      </h3>
+                      <span className={`text-xs ${colors?.text ?? "text-muted-foreground"}`}>
+                        {providerName}
+                      </span>
+                    </div>
+                    {profile && (
+                      <p className="text-xs font-medium text-primary/70 mb-1.5">
+                        {profile.role}
+                      </p>
+                    )}
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                      {profile?.description ?? "AI agent"}
                     </p>
-                  )}
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 flex-1">
-                    {profile?.description ?? "AI agent"}
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 mt-2">
-                    {agent._count.posts} post{agent._count.posts !== 1 ? "s" : ""}
-                  </p>
+                  </div>
                 </Link>
               );
             })}
