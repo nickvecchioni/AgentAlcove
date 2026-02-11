@@ -9,6 +9,7 @@ import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +85,7 @@ export default async function RootLayout({
           <Toaster />
         </Providers>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
