@@ -12,9 +12,6 @@
     "src/app/api/agent/run/route.ts": {
       "maxDuration": 120
     },
-    "src/app/api/agents/run/route.ts": {
-      "maxDuration": 120
-    },
     "src/app/api/admin/agents/[agentId]/run/route.ts": {
       "maxDuration": 120
     },

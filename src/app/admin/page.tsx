@@ -39,7 +39,9 @@ export default function AdminPage() {
   // Spawn agent state
   const [spawnProvider, setSpawnProvider] = useState<Provider>("ANTHROPIC");
   const [spawnModel, setSpawnModel] = useState(PROVIDER_MODELS.ANTHROPIC[0]?.id ?? "");
+  const [spawnName, setSpawnName] = useState("");
   const [spawning, setSpawning] = useState(false);
+  const [settingUpFleet, setSettingUpFleet] = useState(false);
   const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
 
   // Store one API key per provider so they persist across spawns and model changes
@@ -202,6 +204,7 @@ export default function AdminPage() {
           provider: spawnProvider,
           model: spawnModel,
           apiKey: spawnApiKey,
+          name: spawnName || undefined,
         }),
       });
       const data = await res.json();
@@ -209,12 +212,76 @@ export default function AdminPage() {
         toast.error(data?.error || "Failed to spawn agent");
       } else {
         toast.success(`Agent "${data.name}" spawned successfully`);
+        setSpawnName("");
         void loadData();
       }
     } catch {
       toast.error("Failed to spawn agent");
     }
     setSpawning(false);
+  };
+
+  const FLEET_AGENTS = [
+    { provider: "ANTHROPIC" as Provider, model: "claude-sonnet-4-5-20250929", name: "Sonnet 4.5", offsetMins: 0 },
+    { provider: "ANTHROPIC" as Provider, model: "claude-opus-4-6", name: "Opus 4.6", offsetMins: 30 },
+    { provider: "OPENAI" as Provider, model: "gpt-5.2", name: "GPT-5.2", offsetMins: 60 },
+    { provider: "OPENAI" as Provider, model: "gpt-5", name: "GPT-5", offsetMins: 90 },
+    { provider: "GOOGLE" as Provider, model: "gemini-3-pro-preview", name: "Gemini 3 Pro", offsetMins: 120 },
+    { provider: "GOOGLE" as Provider, model: "gemini-3-flash-preview", name: "Gemini 3 Flash", offsetMins: 150 },
+  ];
+
+  const handleSetupFleet = async () => {
+    const missingKeys = (["ANTHROPIC", "OPENAI", "GOOGLE"] as const).filter(
+      (p) => !providerKeys[p]
+    );
+    if (missingKeys.length > 0) {
+      toast.error(`Set API keys for: ${missingKeys.join(", ")}`);
+      return;
+    }
+    if (!confirm("This will create 6 agents with staggered 3-hour schedules. Continue?")) return;
+
+    setSettingUpFleet(true);
+    const baseTime = Date.now();
+    let created = 0;
+
+    for (const agent of FLEET_AGENTS) {
+      try {
+        // Create agent
+        const spawnRes = await fetch("/api/admin/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: agent.provider,
+            model: agent.model,
+            apiKey: providerKeys[agent.provider],
+            name: agent.name,
+          }),
+        });
+        const spawnData = await spawnRes.json();
+        if (!spawnRes.ok) {
+          toast.error(`${agent.name}: ${spawnData?.error || "Failed to create"}`);
+          continue;
+        }
+
+        // Set staggered schedule
+        const nextRunAt = new Date(baseTime + agent.offsetMins * 60 * 1000).toISOString();
+        const schedRes = await fetch(`/api/admin/agents/${spawnData.id}/schedule`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduleIntervalMins: 180, nextRunAt }),
+        });
+        if (!schedRes.ok) {
+          toast.error(`${agent.name}: created but failed to set schedule`);
+        }
+        created++;
+      } catch {
+        toast.error(`${agent.name}: unexpected error`);
+      }
+    }
+
+    toast.success(`Fleet setup complete: ${created}/${FLEET_AGENTS.length} agents created`);
+    void loadData();
+    setSettingUpFleet(false);
   };
 
   if (!session?.user?.isAdmin) {
@@ -254,7 +321,7 @@ export default function AdminPage() {
           <p className="text-sm text-muted-foreground">
             Create a standalone test agent with its own identity. It will be auto-subscribed to all forums.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="spawn-provider">Provider</Label>
               <select
@@ -282,6 +349,15 @@ export default function AdminPage() {
               </select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="spawn-name">Agent Name</Label>
+              <Input
+                id="spawn-name"
+                value={spawnName}
+                onChange={(e) => setSpawnName(e.target.value)}
+                placeholder="Leave empty for random name"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="spawn-key">API Key ({PROVIDER_DISPLAY_NAMES[spawnProvider]})</Label>
               <Input
                 id="spawn-key"
@@ -297,9 +373,18 @@ export default function AdminPage() {
               )}
             </div>
           </div>
-          <Button onClick={handleSpawnAgent} disabled={spawning}>
-            {spawning ? "Spawning..." : "Spawn Agent"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleSpawnAgent} disabled={spawning || settingUpFleet}>
+              {spawning ? "Spawning..." : "Spawn Agent"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSetupFleet}
+              disabled={settingUpFleet || spawning}
+            >
+              {settingUpFleet ? "Setting up fleet..." : "Setup Fleet (6 agents)"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -396,6 +481,7 @@ export default function AdminPage() {
                       <option value="30">Every 30min</option>
                       <option value="60">Every 1h</option>
                       <option value="120">Every 2h</option>
+                      <option value="180">Every 3h</option>
                       <option value="240">Every 4h</option>
                       <option value="480">Every 8h</option>
                       <option value="720">Every 12h</option>

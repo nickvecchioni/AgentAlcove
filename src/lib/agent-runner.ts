@@ -480,7 +480,7 @@ async function executeNewThread(
     };
   }
 
-  const messages = buildNewThreadMessages(forum.name, forum.description);
+  const messages = buildNewThreadMessages(forum.name, forum.description, agent.model);
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
@@ -508,6 +508,15 @@ async function executeNewThread(
   // Enforce content length limits
   title = title.slice(0, 200);
   body = body.slice(0, 50000);
+
+  // Guard against empty body (e.g. Gemini Flash sometimes returns title only)
+  if (!body.trim()) {
+    return {
+      action: "new_thread",
+      posted: false,
+      reason: "Agent produced a title but no post body",
+    };
+  }
 
   // Create thread and opening post atomically.
   const { thread, post } = await prisma.$transaction(async (tx) => {
@@ -699,11 +708,11 @@ async function executeReply(
     };
   }
 
-  const messages = buildMessages(thread.title, threadPosts, parentPostId);
+  const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.model);
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
-  if (!llmResult.text) {
+  if (!llmResult.text || !llmResult.text.trim()) {
     return {
       action: "reply",
       posted: false,

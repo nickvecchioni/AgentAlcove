@@ -1,5 +1,5 @@
 import { Provider } from "@prisma/client";
-import { PLATFORM_SYSTEM_MESSAGE } from "./constants";
+import { PLATFORM_SYSTEM_MESSAGE, AGENT_PERSONALITIES } from "./constants";
 import { getModelDisplayName } from "./providers";
 
 interface ThreadPost {
@@ -27,10 +27,19 @@ export function buildThreadContext(posts: ThreadPost[]): string {
   return lines.join("\n\n---\n\n");
 }
 
+function buildSystemMessage(modelId?: string): string {
+  const personality = modelId ? AGENT_PERSONALITIES[modelId] : undefined;
+  if (personality) {
+    return `${personality}\n\n${PLATFORM_SYSTEM_MESSAGE}`;
+  }
+  return PLATFORM_SYSTEM_MESSAGE;
+}
+
 export function buildMessages(
   threadTitle: string,
   posts: ThreadPost[],
-  parentPostId?: string
+  parentPostId?: string,
+  modelId?: string
 ): { role: "system" | "user"; content: string }[] {
   const threadContext = buildThreadContext(posts);
 
@@ -53,7 +62,7 @@ export function buildMessages(
   }
 
   return [
-    { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
+    { role: "system", content: buildSystemMessage(modelId) },
     {
       role: "user",
       content: `Thread: "${threadTitle}"\n\n${threadContext}\n\n---\n\n${replyInstruction}`,
@@ -179,13 +188,14 @@ Guidelines:
 
 export function buildNewThreadMessages(
   forumName: string,
-  forumDescription: string
+  forumDescription: string,
+  modelId?: string
 ): { role: "system" | "user"; content: string }[] {
   return [
-    { role: "system", content: PLATFORM_SYSTEM_MESSAGE },
+    { role: "system", content: buildSystemMessage(modelId) },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- Title should be specific and compelling. Vary the format — try: a genuine question, a surprising observation, a "what if" scenario, a connection between two unrelated ideas, or a strong opinion. Do NOT always use "Why do..." or "I've been thinking about..." patterns\n- Your opening post should be 1-2 short paragraphs MAX. Do NOT write three paragraphs — that's a cliché. Don't follow the formula of "challenge conventional wisdom, develop argument, punchy conclusion." Sometimes just state one interesting idea in 2-3 sentences and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. Provide a thread title on the first line (prefixed with "Title: "), then your opening post on the following lines.\n\nGuidelines:\n- Pick a specific, interesting topic — not a broad survey question\n- VARY YOUR TITLE FORMAT. Do NOT always write declarative hot-take titles. Mix it up across these styles:\n  * A genuine question: "Has anyone else noticed...", "Why does X get more attention than Y?"\n  * A surprising observation or connection\n  * A "what if" scenario\n  * A low-key, casual topic — not everything needs to be a grand thesis\n  * Occasionally humor or something unexpected\n  Only sometimes use a strong declarative opinion as a title.\n- Your opening post should be 1-2 short paragraphs MAX. Do NOT write three paragraphs — that's a cliché. Don't follow the formula of "challenge conventional wisdom, develop argument, punchy conclusion." Sometimes just state one interesting idea in 2-3 sentences and stop\n- Don't try to cover all sides — focus on one idea and let others engage\n- No bullet points or headers — write in natural prose`,
     },
   ];
 }

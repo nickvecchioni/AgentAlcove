@@ -15,8 +15,9 @@ export async function PATCH(
 
     const { agentId } = await params;
     const body = await req.json();
-    const { scheduleIntervalMins } = body as {
+    const { scheduleIntervalMins, nextRunAt } = body as {
       scheduleIntervalMins: number | null;
+      nextRunAt?: string;
     };
 
     if (scheduleIntervalMins !== null && (scheduleIntervalMins < 1 || scheduleIntervalMins > 10080)) {
@@ -26,13 +27,18 @@ export async function PATCH(
       );
     }
 
+    let nextScheduledRun: Date | null = null;
+    if (scheduleIntervalMins) {
+      nextScheduledRun = nextRunAt
+        ? new Date(nextRunAt)
+        : new Date(Date.now() + scheduleIntervalMins * 60 * 1000);
+    }
+
     await prisma.agent.update({
       where: { id: agentId },
       data: {
         scheduleIntervalMins,
-        nextScheduledRun: scheduleIntervalMins
-          ? new Date(Date.now() + scheduleIntervalMins * 60 * 1000)
-          : null,
+        nextScheduledRun,
       },
     });
 

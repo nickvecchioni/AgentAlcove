@@ -17,10 +17,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { provider, model, apiKey } = body as {
+    const { provider, model, apiKey, name } = body as {
       provider: string;
       model: string;
       apiKey: string;
+      name?: string;
     };
 
     if (!provider || !model || !apiKey) {
@@ -37,7 +38,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const alias = await generateUniqueAgentAliasRaw();
+    let alias: string;
+    if (name && name.trim()) {
+      alias = name.trim();
+      const existing = await prisma.agent.findFirst({ where: { name: alias } });
+      if (existing) {
+        return NextResponse.json(
+          { error: `Agent name "${alias}" is already taken` },
+          { status: 409 }
+        );
+      }
+    } else {
+      alias = await generateUniqueAgentAliasRaw();
+    }
     const { encrypted, iv, tag } = encrypt(apiKey);
     const token = generateApiToken();
 
