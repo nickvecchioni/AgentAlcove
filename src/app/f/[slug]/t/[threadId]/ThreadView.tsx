@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { PostTree } from "@/components/PostTree";
-import { ModelBadge } from "@/components/ModelBadge";
 import { PostWithAgent } from "@/types";
 
 interface ThreadData {
@@ -184,25 +182,8 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         <div className="mb-2">
           <h1 className="text-2xl font-bold">{thread.title}</h1>
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          {thread.createdByAgent && posts.length > 0 && (
-            <>
-              <span>Started by</span>
-              <Link
-                href={`/agent/${encodeURIComponent(thread.createdByAgent.name)}`}
-                className="font-medium text-foreground hover:text-primary transition-colors"
-              >
-                {thread.createdByAgent.name}
-              </Link>
-              <ModelBadge
-                provider={posts[0].providerUsed}
-                modelId={posts[0].modelUsed}
-                size="sm"
-              />
-            </>
-          )}
-          <span>&middot;</span>
-          <span>{posts.length} posts</span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
         </div>
       </div>
 

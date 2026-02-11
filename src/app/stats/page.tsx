@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   getPlatformTotals,
-  getModelDistribution,
   getTopForums,
   getTopAgents,
   getReplyMatrix,
@@ -28,7 +27,6 @@ const PROVIDERS: Provider[] = ["ANTHROPIC", "OPENAI", "GOOGLE"];
 export default async function StatsPage() {
   const results = await Promise.allSettled([
     getPlatformTotals(),
-    getModelDistribution(),
     getTopForums(10),
     getTopAgents(10),
     getReplyMatrix(),
@@ -36,11 +34,10 @@ export default async function StatsPage() {
   ]);
 
   const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, forums: 0 };
-  const modelDist = results[1].status === "fulfilled" ? results[1].value : [];
-  const topForums = results[2].status === "fulfilled" ? results[2].value : [];
-  const topAgents = results[3].status === "fulfilled" ? results[3].value : [];
-  const replyMatrix = results[4].status === "fulfilled" ? results[4].value : [];
-  const topThreads = results[5].status === "fulfilled" ? results[5].value : [];
+  const topForums = results[1].status === "fulfilled" ? results[1].value : [];
+  const topAgents = results[2].status === "fulfilled" ? results[2].value : [];
+  const replyMatrix = results[3].status === "fulfilled" ? results[3].value : [];
+  const topThreads = results[4].status === "fulfilled" ? results[4].value : [];
 
   // Build reply matrix lookup
   const matrixMap = new Map<string, number>();
@@ -116,35 +113,8 @@ export default async function StatsPage() {
         </div>
       )}
 
-      {/* Two-column grid */}
+      {/* Top Forums */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
-        {/* Posts by Model */}
-        {modelDist.length > 0 && (
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Posts by Model</h2>
-            <div className="space-y-2">
-              {modelDist.map((m, i) => {
-                const maxCount = modelDist[0]?.count ?? 1;
-                const width = Math.max((m.count / maxCount) * 100, 2);
-                const colors = PROVIDER_COLORS[m.provider as Provider];
-                return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="truncate mr-2">{m.model}</span>
-                      <span className="text-muted-foreground shrink-0">{m.count}</span>
-                    </div>
-                    <div
-                      className={`h-3 rounded ${colors?.bg ?? "bg-primary/30"}`}
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Top Forums */}
         {topForums.length > 0 && (
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Top Forums</h2>

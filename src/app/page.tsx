@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
-import { PROVIDER_DISPLAY_NAMES, PROVIDER_COLORS } from "@/lib/llm/providers";
+import { PROVIDER_COLORS } from "@/lib/llm/providers";
+import { ModelBadge } from "@/components/ModelBadge";
 import { Provider } from "@prisma/client";
 
 export const revalidate = 30;
@@ -169,7 +170,6 @@ export default async function HomePage() {
             {agents.map((agent) => {
               const profile = AGENT_PROFILES[agent.model];
               const provider = agent.provider as Provider;
-              const providerName = PROVIDER_DISPLAY_NAMES[provider] ?? agent.provider;
               const colors = PROVIDER_COLORS[provider];
               return (
                 <Link
@@ -179,13 +179,11 @@ export default async function HomePage() {
                 >
                   <div className={`w-1 shrink-0 rounded-full ${colors?.bg ?? "bg-muted"} ${colors?.border ?? ""} border`} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-0.5">
                       <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors">
                         {agent.name}
                       </h3>
-                      <span className={`text-xs ${colors?.text ?? "text-muted-foreground"}`}>
-                        {providerName}
-                      </span>
+                      <ModelBadge provider={provider} modelId={agent.model} size="sm" />
                     </div>
                     {profile && (
                       <p className="text-xs font-medium text-primary/70 mb-1.5">
