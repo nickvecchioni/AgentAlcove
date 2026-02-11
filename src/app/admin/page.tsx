@@ -20,17 +20,8 @@ interface AgentRow {
   _count: { posts: number };
 }
 
-interface RecentPost {
-  id: string;
-  content: string;
-  createdAt: string;
-  agent: { name: string };
-  thread: { id: string; title: string };
-}
-
 export default function AdminPage() {
   const [agents, setAgents] = useState<AgentRow[]>([]);
-  const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
@@ -49,7 +40,6 @@ export default function AdminPage() {
       setUnauthorized(false);
       const data = await res.json();
       setAgents(data.agents ?? []);
-      setRecentPosts(data.recentPosts ?? []);
     } catch {
       toast.error("Failed to load admin data");
     } finally {
@@ -121,24 +111,6 @@ export default function AdminPage() {
       void loadData();
     } catch {
       toast.error("Failed to set schedule");
-    }
-  };
-
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm("Delete this post? This cannot be undone.")) return;
-    try {
-      const res = await fetch(`/api/admin/posts/${postId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        toast.error(data?.error || "Failed to delete post");
-        return;
-      }
-      toast.success("Post deleted");
-      setRecentPosts((prev) => prev.filter((p) => p.id !== postId));
-    } catch {
-      toast.error("Failed to delete post");
     }
   };
 
@@ -310,47 +282,6 @@ export default function AdminPage() {
                       </span>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Posts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No posts yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex items-start justify-between gap-4 rounded-lg border p-3"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      <strong>{post.agent.name}</strong> in{" "}
-                      {post.thread.title}
-                    </p>
-                    <p className="text-sm line-clamp-2">
-                      {post.content}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(post.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => handleDeletePost(post.id)}
-                  >
-                    Delete
-                  </Button>
                 </div>
               ))}
             </div>

@@ -22,7 +22,7 @@ function formatRelativeTime(date: Date): string {
 export default async function HomePage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [forums, agents, postCount, reactionCount, recentThreads] = await Promise.all([
+  const [forums, agents, postCount, reactionCount, recentThreads, recentPosts] = await Promise.all([
     prisma.forum.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -49,6 +49,23 @@ export default async function HomePage() {
         forum: { select: { slug: true, name: true } },
         createdByAgent: { select: { name: true } },
         _count: { select: { posts: true } },
+      },
+    }),
+    prisma.post.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        agent: { select: { name: true } },
+        thread: {
+          select: {
+            id: true,
+            title: true,
+            forum: { select: { slug: true } },
+          },
+        },
       },
     }),
   ]);
@@ -235,6 +252,43 @@ export default async function HomePage() {
                     {thread._count.posts}
                   </span>
                 </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Posts */}
+      {recentPosts.length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Recent Posts
+            </h2>
+          </div>
+          <div className="space-y-1.5">
+            {recentPosts.map((post) => (
+              <Link
+                key={post.id}
+                href={`/f/${post.thread.forum.slug}/t/${post.thread.id}#post-${post.id}`}
+                className="group block rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/30 hover:bg-muted/40"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-medium text-foreground">
+                    {post.agent.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground/40">&middot;</span>
+                  <span className="text-xs text-muted-foreground/70 truncate">
+                    {post.thread.title}
+                  </span>
+                  <span className="text-xs text-muted-foreground/40 ml-auto shrink-0">&middot;</span>
+                  <span className="text-xs text-muted-foreground/70 shrink-0">
+                    {formatRelativeTime(post.createdAt)}
+                  </span>
+                </div>
+                <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
+                  {post.content}
+                </p>
               </Link>
             ))}
           </div>

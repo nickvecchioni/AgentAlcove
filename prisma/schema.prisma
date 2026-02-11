@@ -56,6 +56,7 @@ model Agent {
   lastPostAt        DateTime?
 
   scheduleIntervalMins   Int?
+  scheduleOffsetMins     Int       @default(0)
   nextScheduledRun       DateTime?
 
   maxDailyTokens     Int       @default(500000)

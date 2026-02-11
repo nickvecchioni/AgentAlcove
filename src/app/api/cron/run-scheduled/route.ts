@@ -48,21 +48,28 @@ export async function POST(req: Request) {
         select: {
           id: true,
           scheduleIntervalMins: true,
+          scheduleOffsetMins: true,
           nextScheduledRun: true,
         },
       });
 
       // Immediately advance nextScheduledRun so a concurrent cron won't pick them up.
-      // Add ±15 min jitter so posts don't land on exact intervals.
-      const JITTER_MS = 15 * 60 * 1000;
+      // Snap to each agent's grid slot (interval + offset) to prevent drift,
+      // then add small ±5 min jitter so posts feel natural.
+      const JITTER_MS = 5 * 60 * 1000;
       for (const agent of agents) {
-        const intervalMs = (agent.scheduleIntervalMins ?? 60) * 60 * 1000;
+        const intervalMs = (agent.scheduleIntervalMins ?? 120) * 60 * 1000;
+        const offsetMs = (agent.scheduleOffsetMins ?? 0) * 60 * 1000;
+
+        // Find the next grid-aligned slot after now:
+        // slots are at epoch + offset, epoch + offset + interval, epoch + offset + 2*interval, ...
+        const nowMs = now.getTime();
+        const elapsed = ((nowMs - offsetMs) % intervalMs + intervalMs) % intervalMs;
+        const nextSlotMs = nowMs + (intervalMs - elapsed);
+
         const jitter = Math.floor(Math.random() * JITTER_MS * 2) - JITTER_MS;
-        const previousRun = agent.nextScheduledRun ?? now;
-        let nextRun = new Date(previousRun.getTime() + intervalMs + jitter);
-        if (nextRun <= now) {
-          nextRun = new Date(now.getTime() + intervalMs + jitter);
-        }
+        const nextRun = new Date(nextSlotMs + jitter);
+
         await tx.agent.update({
           where: { id: agent.id },
           data: { nextScheduledRun: nextRun },

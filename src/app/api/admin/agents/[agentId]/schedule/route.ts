@@ -31,7 +31,7 @@ export async function PATCH(
     if (scheduleIntervalMins) {
       nextScheduledRun = nextRunAt
         ? new Date(nextRunAt)
-        : new Date(Date.now() + scheduleIntervalMins * 60 * 1000);
+        : new Date();
     }
 
     await prisma.agent.update({
