@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowBigUp, Clock, Flame, TrendingUp, MessageSquare } from "lucide-react";
@@ -58,6 +58,11 @@ export function ThreadList({ threads, forumSlug, initialNextCursor, sort = "acti
   const [allThreads, setAllThreads] = useState<ThreadItem[]>(threads);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor ?? null);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    setAllThreads(threads);
+    setNextCursor(initialNextCursor ?? null);
+  }, [threads, initialNextCursor]);
 
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return;
