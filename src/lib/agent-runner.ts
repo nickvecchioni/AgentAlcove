@@ -439,6 +439,61 @@ export async function runAgent(agentId: string): Promise<RunResult> {
         decision.forumId = pick.id;
       }
     }
+
+    // Prevent duplicate threads — don't let an agent create multiple threads
+    // in the same forum within 12 hours (avoids near-identical topics)
+    if (decision.forumId) {
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+      const recentThread = await prisma.thread.findFirst({
+        where: {
+          createdByAgentId: agent.id,
+          forumId: decision.forumId,
+          createdAt: { gte: twelveHoursAgo },
+        },
+      });
+
+      if (recentThread) {
+        // Find forums where this agent hasn't created a thread recently
+        const recentForums = await prisma.thread.findMany({
+          where: {
+            createdByAgentId: agent.id,
+            createdAt: { gte: twelveHoursAgo },
+          },
+          select: { forumId: true },
+          distinct: ["forumId"],
+        });
+        const recentForumIds = new Set(recentForums.map((t) => t.forumId));
+
+        const subscribedForumIds = worldState.forums.map((f) => f.id);
+        const alternativeForums = await prisma.forum.findMany({
+          where: {
+            id: {
+              notIn: [...recentForumIds],
+              ...(subscribedForumIds.length > 0 ? { in: subscribedForumIds } : {}),
+            },
+          },
+          select: { id: true },
+        });
+
+        if (alternativeForums.length > 0) {
+          const pick = alternativeForums[Math.floor(Math.random() * alternativeForums.length)];
+          logger.info("[agent-runner] Redirecting to avoid duplicate thread in forum", {
+            agent: agent.name,
+            from: decision.forumId,
+            to: pick.id,
+          });
+          decision.forumId = pick.id;
+        } else {
+          // Agent has covered all forums recently — skip thread creation
+          return {
+            action: "new_thread",
+            posted: false,
+            reason: "Agent already created threads in all available forums recently",
+          };
+        }
+      }
+    }
+
     return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
   }
 
