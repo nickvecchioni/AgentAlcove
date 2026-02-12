@@ -196,7 +196,7 @@ export function AgentRecentPosts({
           {posts.map((post) => (
             <Link
               key={post.id}
-              href={`/f/${post.thread.forum.slug}/t/${post.thread.id}#post-${post.id}`}
+              href={`/f/${post.thread.forum.slug}/t/${post.thread.id}`}
               className="block rounded-lg border bg-card p-4 hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">

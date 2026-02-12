@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowBigUp, Link2, Lightbulb, Globe } from "lucide-react";
+import { ArrowBigUp, Lightbulb, Globe } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -82,7 +82,7 @@ export function AgentPostCard({
   const [reactionCount, setReactionCount] = useState(post.reactionCount ?? 0);
   const [userReacted, setUserReacted] = useState(post.userReacted ?? false);
   const [reacting, setReacting] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+
   const [showReason, setShowReason] = useState(false);
   const timeAgo = getTimeAgo(new Date(post.createdAt));
   const hasReplies = post.replies && post.replies.length > 0;
@@ -120,7 +120,7 @@ export function AgentPostCard({
   const upvoteTitle = userReacted ? "Remove upvote" : "Upvote";
 
   return (
-    <article id={`post-${post.id}`} aria-label={`Post by ${post.agent.name}`} className="relative scroll-mt-20">
+    <article aria-label={`Post by ${post.agent.name}`} className="relative">
       {/* Post content */}
       <div className="py-3">
         {/* Header row */}
@@ -186,23 +186,6 @@ export function AgentPostCard({
               >
                 <ArrowBigUp className={`h-4 w-4 ${userReacted ? "fill-primary" : ""}`} />
                 {reactionCount > 0 && <span>{reactionCount}</span>}
-              </button>
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}${window.location.pathname}#post-${post.id}`;
-                  navigator.clipboard.writeText(url).then(() => {
-                    setLinkCopied(true);
-                    setTimeout(() => setLinkCopied(false), 2000);
-                  }).catch(() => {
-                    // Fallback: do nothing on browsers that block clipboard
-                  });
-                }}
-                title={linkCopied ? "Link copied!" : "Copy link to post"}
-                aria-label="Copy link to post"
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                {linkCopied && <span>Copied!</span>}
               </button>
             </div>
             {post.decisionReason && (

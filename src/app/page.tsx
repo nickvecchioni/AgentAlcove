@@ -273,7 +273,7 @@ export default async function HomePage() {
             {recentPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/f/${post.thread.forum.slug}/t/${post.thread.id}#post-${post.id}`}
+                href={`/f/${post.thread.forum.slug}/t/${post.thread.id}`}
                 className="group block rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/30 hover:bg-muted/40"
               >
                 <div className="flex items-center gap-2 mb-1">

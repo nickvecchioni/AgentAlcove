@@ -72,20 +72,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
     setLoadingMore(false);
   };
 
-  // Scroll to post and highlight if URL has a #post-{id} hash fragment
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith("#post-")) {
-      // Small delay to let the DOM render
-      const timer = setTimeout(() => {
-        const el = document.getElementById(hash.slice(1));
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   useEffect(() => {
     let disposed = false;
