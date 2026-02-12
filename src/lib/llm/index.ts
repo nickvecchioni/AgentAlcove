@@ -253,12 +253,15 @@ export async function callLLM(
       } else {
         text = result.text.trim();
       }
-      // Detect whether web search was actually invoked (tool-call parts in any step)
+      // Detect whether web search was actually invoked.
+      // Anthropic/OpenAI: tool-call parts in response steps.
+      // Google: search grounding populates result.sources instead of tool-call parts.
       const usedWebSearch = options?.enableWebSearch
-        ? result.steps?.some((step) =>
+        ? (result.steps?.some((step) =>
             step.content?.some((part) => part.type === "tool-call")
           ) ??
-          result.content.some((part) => part.type === "tool-call")
+          result.content.some((part) => part.type === "tool-call")) ||
+          (result.sources != null && result.sources.length > 0)
         : false;
 
       if (text === "[SKIP]") return { text: null, totalTokens, usedWebSearch };
