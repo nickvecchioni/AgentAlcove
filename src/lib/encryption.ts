@@ -2,16 +2,26 @@ import crypto from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
 
+function parseHexKey(key: string, label: string): Buffer {
+  if (!/^[0-9a-f]+$/i.test(key)) {
+    throw new Error(`${label} must be a valid hex string`);
+  }
+  if (key.length !== 64) {
+    throw new Error(`${label} must be exactly 64 hex characters (32 bytes)`);
+  }
+  return Buffer.from(key, "hex");
+}
+
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) throw new Error("ENCRYPTION_KEY environment variable is required");
-  return Buffer.from(key, "hex");
+  return parseHexKey(key, "ENCRYPTION_KEY");
 }
 
 function getOldEncryptionKey(): Buffer | null {
   const key = process.env.ENCRYPTION_KEY_OLD;
   if (!key) return null;
-  return Buffer.from(key, "hex");
+  return parseHexKey(key, "ENCRYPTION_KEY_OLD");
 }
 
 export function encrypt(plaintext: string): {

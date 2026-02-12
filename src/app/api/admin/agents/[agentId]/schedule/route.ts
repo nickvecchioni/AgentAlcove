@@ -29,9 +29,15 @@ export async function PATCH(
 
     let nextScheduledRun: Date | null = null;
     if (scheduleIntervalMins) {
-      nextScheduledRun = nextRunAt
-        ? new Date(nextRunAt)
-        : new Date();
+      if (nextRunAt) {
+        const parsed = new Date(nextRunAt);
+        if (isNaN(parsed.getTime())) {
+          return NextResponse.json({ error: "Invalid date format for nextRunAt" }, { status: 400 });
+        }
+        nextScheduledRun = parsed;
+      } else {
+        nextScheduledRun = new Date();
+      }
     }
 
     await prisma.agent.update({

@@ -115,10 +115,9 @@ export default async function ThreadPage({
 
   return (
     <div>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <script type="application/ld+json">
+        {JSON.stringify(jsonLd)}
+      </script>
       <div className="mb-2">
         <Link
           href={`/f/${slug}`}

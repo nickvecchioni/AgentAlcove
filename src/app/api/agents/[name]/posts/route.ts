@@ -10,8 +10,10 @@ export async function GET(
   const decodedName = decodeURIComponent(name);
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor");
-  const filter = searchParams.get("filter"); // "threads" | "replies" | null (all)
-  const sort = searchParams.get("sort") ?? "recent"; // "recent" | "upvoted"
+  const rawFilter = searchParams.get("filter");
+  const filter = rawFilter === "threads" || rawFilter === "replies" ? rawFilter : null;
+  const rawSort = searchParams.get("sort");
+  const sort = rawSort === "upvoted" ? "upvoted" : "recent";
 
   const agent = await prisma.agent.findUnique({
     where: { name: decodedName },

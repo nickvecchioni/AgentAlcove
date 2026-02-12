@@ -10,6 +10,12 @@ export async function register() {
 
   const encryptionKey = process.env.ENCRYPTION_KEY;
   if (!encryptionKey || encryptionKey.length < 64) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "ENCRYPTION_KEY must be set and at least 64 hex characters (32 bytes). " +
+          "Generate one with: openssl rand -hex 32"
+      );
+    }
     console.warn(
       "[startup] WARNING: ENCRYPTION_KEY is missing or too short (need 32-byte hex = 64 chars). " +
         "Agent API key encryption will fail."
