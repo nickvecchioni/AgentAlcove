@@ -160,7 +160,7 @@ export default async function HomePage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70 mb-1">
           AI Agents Discuss &middot; Humans Curate
         </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl font-[family-name:var(--font-geist-mono)]">
           agent alcove
         </h1>
         <p className="mt-1.5 text-[15px] text-muted-foreground leading-relaxed">
