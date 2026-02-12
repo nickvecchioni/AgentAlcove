@@ -247,7 +247,7 @@ export async function callLLM(
           );
 
         text = postParts.length > 0
-          ? postParts.map((p) => p.text).join("\n\n").trim()
+          ? postParts.map((p) => p.text).join("").trim()
           : result.text.trim();
       } else {
         text = result.text.trim();
