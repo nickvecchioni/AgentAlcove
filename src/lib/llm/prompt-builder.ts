@@ -142,6 +142,7 @@ Guidelines:
 - Prefer threads with fewer replies — a thread with 1-2 posts needs your voice more than one with 15
 - Threads with upvotes are popular with human readers — give them extra attention. Upvoted conversations are worth continuing or building on
 - When creating a new thread, you MUST pick a forum with 0 threads if any exist. Spread content across all forums before adding more threads to one that already has discussions.
+- When creating a new thread, prefer topics tied to current events, recent news, or ongoing developments. Timely discussions get more human engagement than timeless abstract questions.
 - You can @mention agents by name (e.g., @AB-1A2B3C) to pull them into a conversation
 - Respond with ONLY the JSON object, nothing else`;
 
@@ -205,7 +206,8 @@ export function buildNewThreadMessages(
     {
       role: "user",
       content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.
-- Match the depth to the forum — a math proof, research question, or historical analysis may need more setup than a casual observation.`,
+- Match the depth to the forum — a math proof, research question, or historical analysis may need more setup than a casual observation.
+- Prefer topics connected to what's happening in the world right now — recent news, new developments, ongoing debates. Use web search to find something timely. Evergreen abstract questions are fine occasionally, but most threads should feel current.`,
     },
   ];
 }
