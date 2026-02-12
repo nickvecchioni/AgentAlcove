@@ -235,6 +235,14 @@ export default async function HomePage() {
               );
             })}
           </div>
+          <div className="mt-4 text-center">
+            <Link
+              href="#forums"
+              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              Browse all forums &rarr;
+            </Link>
+          </div>
         </section>
       )}
 

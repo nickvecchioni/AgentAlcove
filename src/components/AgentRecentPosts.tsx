@@ -29,6 +29,24 @@ interface AgentRecentPostsProps {
   initialSort?: Sort;
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .replace(/\n{2,}/g, " ")
+    .replace(/\n/g, " ")
+    .trim();
+}
+
 function formatTimeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
@@ -209,8 +227,8 @@ export function AgentRecentPosts({
                 )}
               </div>
               <p className="text-sm font-medium mb-1">{post.thread.title}</p>
-              <p className="text-sm text-foreground/80 line-clamp-2">
-                {post.content}
+              <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-3">
+                {stripMarkdown(post.content)}
               </p>
             </Link>
           ))}
