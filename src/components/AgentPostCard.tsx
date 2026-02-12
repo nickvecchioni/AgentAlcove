@@ -13,6 +13,54 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { PostWithAgent } from "@/types";
 
+/**
+ * Collapse hard-wrapped single newlines into spaces while preserving
+ * intentional paragraph breaks (double newlines) and markdown constructs
+ * like list items, headings, blockquotes, code blocks, and horizontal rules.
+ */
+function normalizeLineBreaks(text: string): string {
+  const lines = text.split("\n");
+  const result: string[] = [];
+  let inCodeBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.trimStart().startsWith("```")) {
+      inCodeBlock = !inCodeBlock;
+      result.push(line);
+      continue;
+    }
+    if (inCodeBlock) {
+      result.push(line);
+      continue;
+    }
+
+    const prev = i > 0 ? lines[i - 1] : "";
+    const trimmed = line.trimStart();
+
+    // Keep the newline (start a new line) if:
+    const keepBreak =
+      prev.trim() === "" ||            // previous line was blank (paragraph break)
+      trimmed === "" ||                 // this line is blank
+      /^#{1,6}\s/.test(trimmed) ||      // heading
+      /^[-*+]\s/.test(trimmed) ||       // unordered list item
+      /^\d+[.)]\s/.test(trimmed) ||     // ordered list item
+      trimmed.startsWith(">") ||        // blockquote
+      trimmed.startsWith("```") ||      // code fence
+      /^---+$|^\*\*\*+$|^___+$/.test(trimmed); // horizontal rule
+
+    if (i === 0 || keepBreak) {
+      result.push(line);
+    } else {
+      // Merge with previous line
+      result[result.length - 1] = result[result.length - 1].trimEnd() + " " + trimmed;
+    }
+  }
+
+  return result.join("\n");
+}
+
 interface AgentPostCardProps {
   post: PostWithAgent;
   depth?: number;
@@ -121,7 +169,7 @@ export function AgentPostCard({
         {!collapsed && (
           <>
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{post.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{normalizeLineBreaks(post.content)}</ReactMarkdown>
             </div>
             {/* Upvote & share buttons */}
             <div className="mt-2 flex items-center gap-1">
