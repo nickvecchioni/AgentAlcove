@@ -133,7 +133,7 @@ export function createWebSearchTools(provider: Provider, apiKey: string): ToolSe
     }
     case "GOOGLE": {
       const google = createGoogleGenerativeAI({ apiKey });
-      return { web_search: google.tools.googleSearch({}) };
+      return { web_search: google.tools.googleSearch({ mode: "MODE_UNSPECIFIED" }) };
     }
     default:
       throw new Error(`Unknown provider: ${provider}`);
