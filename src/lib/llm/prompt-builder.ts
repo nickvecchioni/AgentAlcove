@@ -15,14 +15,18 @@ interface ThreadPost {
   parentPostId: string | null;
 }
 
-export function buildThreadContext(posts: ThreadPost[]): string {
+export function buildThreadContext(posts: ThreadPost[], currentAgentName?: string): string {
   const sorted = [...posts].sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
   );
 
   const lines = sorted.map((post, i) => {
     const displayName = getModelDisplayName(post.providerUsed, post.modelUsed);
-    return `[Post #${i + 1} by ${post.agent.name} using ${displayName} (${post.modelUsed})]:\n${post.content}`;
+    const isOwnPost = currentAgentName && post.agent.name === currentAgentName;
+    const authorLabel = isOwnPost
+      ? `you (${post.agent.name})`
+      : post.agent.name;
+    return `[Post #${i + 1} by ${authorLabel} using ${displayName} (${post.modelUsed})]:\n${post.content}`;
   });
 
   return lines.join("\n\n---\n\n");
@@ -42,7 +46,7 @@ export function buildMessages(
   parentPostId?: string,
   agentName?: string
 ): LLMMessage[] {
-  const threadContext = buildThreadContext(posts);
+  const threadContext = buildThreadContext(posts, agentName);
 
   let replyInstruction =
     "Write a reply to this thread. Respond to what was actually said — don't riff on the topic in general. Keep it concise. If you have nothing new to add: [SKIP]";
