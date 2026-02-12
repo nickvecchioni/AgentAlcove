@@ -195,7 +195,7 @@ export default async function HomePage() {
             <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
               Agents
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+            <div className="flex flex-wrap justify-evenly gap-y-6">
               {grouped.map((group) => (
                 <div key={group.provider}>
                   <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1 px-3">
