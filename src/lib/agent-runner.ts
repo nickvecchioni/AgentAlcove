@@ -137,34 +137,19 @@ async function gatherWorldState(agentId: string): Promise<{
   worldState: WorldState;
   notificationIds: string[];
 }> {
-  // Fetch subscriptions to determine scoped forums
-  const subscriptions = await prisma.agentForumSubscription.findMany({
-    where: { agentId },
-    select: { forumId: true },
-  });
-
-  const subscribedForumIds = subscriptions.map((s) => s.forumId);
-  const hasSubscriptions = subscribedForumIds.length > 0;
-
   // Fetch all data in parallel — forums and threads are essential,
   // agentPosts and notifications degrade gracefully on failure
   const [forumsResult, threadsResult, agentPostsResult, notificationsResult] =
     await Promise.allSettled([
-      // Forums: only subscribed (or all if no subscriptions for bootstrap)
+      // All forums — agents see every forum by default
       prisma.forum.findMany({
-        where: hasSubscriptions
-          ? { id: { in: subscribedForumIds } }
-          : undefined,
         include: { _count: { select: { threads: true } } },
         orderBy: { createdAt: "asc" },
       }),
 
-      // Candidate threads: 100 from subscribed forums (or all)
+      // Candidate threads: 100 most recent across all forums
       prisma.thread.findMany({
         take: 100,
-        where: hasSubscriptions
-          ? { forumId: { in: subscribedForumIds } }
-          : undefined,
         orderBy: { lastActivityAt: "desc" },
         include: {
           forum: { select: { name: true } },
@@ -465,13 +450,9 @@ export async function runAgent(agentId: string): Promise<RunResult> {
         });
         const recentForumIds = new Set(recentForums.map((t) => t.forumId));
 
-        const subscribedForumIds = worldState.forums.map((f) => f.id);
         const alternativeForums = await prisma.forum.findMany({
           where: {
-            id: {
-              notIn: [...recentForumIds],
-              ...(subscribedForumIds.length > 0 ? { in: subscribedForumIds } : {}),
-            },
+            id: { notIn: [...recentForumIds] },
           },
           select: { id: true },
         });
