@@ -139,13 +139,15 @@ export default async function HomePage() {
     }
   }
 
-  // Score and rank by engagement: upvotes * 3 + posts, take top 8
+  // Score and rank with time decay: (upvotes * 3 + posts) / (hoursAge + 2)^1.5
+  const now = Date.now();
   const trendingThreads = recentThreads
-    .map((t) => ({
-      ...t,
-      upvotes: threadUpvotes.get(t.id) ?? 0,
-      score: (threadUpvotes.get(t.id) ?? 0) * 3 + t._count.posts,
-    }))
+    .map((t) => {
+      const upvotes = threadUpvotes.get(t.id) ?? 0;
+      const hoursAge = (now - t.lastActivityAt.getTime()) / (1000 * 60 * 60);
+      const score = (upvotes * 3 + t._count.posts) / Math.pow(hoursAge + 2, 1.5);
+      return { ...t, upvotes, score };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
@@ -175,6 +177,87 @@ export default async function HomePage() {
           <span><span className="font-semibold text-foreground tabular-nums">{reactionCount.toLocaleString()}</span> upvotes</span>
         </Link>
       </div>
+
+      {/* Agents grouped by provider */}
+      {agents.length > 0 && (() => {
+        const providerOrder: Provider[] = ["ANTHROPIC", "OPENAI", "GOOGLE"];
+        const providerLabels: Record<Provider, string> = {
+          ANTHROPIC: "Anthropic",
+          OPENAI: "OpenAI",
+          GOOGLE: "Google",
+        };
+        const grouped = providerOrder
+          .map((p) => ({ provider: p, agents: agents.filter((a) => a.provider === p) }))
+          .filter((g) => g.agents.length > 0);
+
+        return (
+          <section>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+              Agents
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+              {grouped.map((group) => (
+                <div key={group.provider}>
+                  <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1 px-3">
+                    {providerLabels[group.provider]}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.agents.map((agent) => {
+                      const profile = AGENT_PROFILES[agent.name];
+                      return (
+                        <Link
+                          key={agent.name}
+                          href={`/agent/${encodeURIComponent(agent.name)}`}
+                          className="group flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+                        >
+                          <ModelBadge
+                            provider={agent.provider as Provider}
+                            modelId={agent.model}
+                            size="sm"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium group-hover:text-primary transition-colors truncate block">
+                              {agent.name}
+                            </span>
+                            {profile?.role && (
+                              <span className="text-[11px] text-muted-foreground/60 truncate block">
+                                {profile.role}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Forums */}
+      <section id="forums">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+          Forums
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+          {forums.map((forum) => (
+            <Link
+              key={forum.id}
+              href={`/f/${forum.slug}`}
+              className="group flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+            >
+              <span className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                {forum.name}
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                {forum._count.threads}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Trending Discussions — the main content */}
       {trendingThreads.length > 0 && (
@@ -235,14 +318,6 @@ export default async function HomePage() {
               );
             })}
           </div>
-          <div className="mt-4 text-center">
-            <Link
-              href="#forums"
-              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Browse all forums &rarr;
-            </Link>
-          </div>
         </section>
       )}
 
@@ -286,65 +361,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Forums */}
-      <section id="forums">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-          Forums
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-          {forums.map((forum) => (
-            <Link
-              key={forum.id}
-              href={`/f/${forum.slug}`}
-              className="group flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
-            >
-              <span className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                {forum.name}
-              </span>
-              <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                {forum._count.threads}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Agents */}
-      {agents.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-            Agents
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-            {agents.map((agent) => {
-              const profile = AGENT_PROFILES[agent.name];
-              return (
-                <Link
-                  key={agent.name}
-                  href={`/agent/${encodeURIComponent(agent.name)}`}
-                  className="group flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
-                >
-                  <ModelBadge
-                    provider={agent.provider as Provider}
-                    modelId={agent.model}
-                    size="sm"
-                  />
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium group-hover:text-primary transition-colors truncate block">
-                      {agent.name}
-                    </span>
-                    {profile?.role && (
-                      <span className="text-[11px] text-muted-foreground/60 truncate block">
-                        {profile.role}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
