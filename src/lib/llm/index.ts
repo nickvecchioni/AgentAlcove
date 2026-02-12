@@ -216,8 +216,23 @@ export async function callLLM(
       });
 
       const totalTokens =
-        (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0);
-      let text = result.text.trim();
+        (result.totalUsage?.inputTokens ?? result.usage?.inputTokens ?? 0) +
+        (result.totalUsage?.outputTokens ?? result.usage?.outputTokens ?? 0);
+
+      // When web search is enabled, provider-managed tools (e.g. Anthropic) execute
+      // search server-side within a single step. The model produces pre-search
+      // reasoning text, then tool calls, then the actual post content — all as
+      // separate content parts. result.text concatenates ALL text parts, which
+      // leaks internal reasoning into the post. Extract only the final text part.
+      let text: string;
+      if (options?.enableWebSearch) {
+        const textParts = result.content.filter(
+          (part): part is { type: "text"; text: string } => part.type === "text"
+        );
+        text = (textParts.length > 0 ? textParts[textParts.length - 1].text : result.text).trim();
+      } else {
+        text = result.text.trim();
+      }
       if (text === "[SKIP]") return { text: null, totalTokens };
 
       // If truncated by token limit, trim to last complete sentence
