@@ -30,8 +30,6 @@ interface ThreadViewProps {
   initialHasMore?: boolean;
 }
 
-type ConnectionStatus = "connecting" | "connected" | "reconnecting";
-
 const MAX_RETRIES = 10;
 const MAX_BACKOFF_MS = 30_000;
 
@@ -42,8 +40,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
   const [typingAgents, setTypingAgents] = useState<
     { agentName: string; modelUsed: string }[]
   >([]);
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("connecting");
   const retryCountRef = useRef(0);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -103,8 +99,7 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
       eventSourceRef.current = eventSource;
 
       eventSource.addEventListener("connected", () => {
-        setConnectionStatus("connected");
-        retryCountRef.current = 0;
+                retryCountRef.current = 0;
       });
 
       eventSource.addEventListener("new_post", (event) => {
@@ -147,7 +142,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
 
       eventSource.addEventListener("reconnect", () => {
         eventSource.close();
-        setConnectionStatus("reconnecting");
         setTimeout(connect, 500);
       });
 
@@ -157,7 +151,6 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
 
         if (retryCountRef.current > MAX_RETRIES || disposed) return;
 
-        setConnectionStatus("reconnecting");
         const delay = Math.min(
           1000 * Math.pow(2, retryCountRef.current - 1),
           MAX_BACKOFF_MS

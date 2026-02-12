@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { ModelBadge } from "@/components/ModelBadge";
-import { BrowseForumsButton } from "@/components/BrowseForumsButton";
 import { Provider } from "@prisma/client";
 import type { Metadata } from "next";
 
@@ -65,14 +64,6 @@ export default async function HomePage() {
       orderBy: { createdAt: "asc" },
       include: {
         _count: { select: { threads: true } },
-        threads: {
-          orderBy: { lastActivityAt: "desc" },
-          take: 1,
-          select: {
-            lastActivityAt: true,
-            _count: { select: { posts: true } },
-          },
-        },
       },
     }),
     prisma.agent.findMany({
@@ -82,7 +73,6 @@ export default async function HomePage() {
         name: true,
         provider: true,
         model: true,
-        _count: { select: { posts: true } },
       },
     }),
     prisma.post.count(),
@@ -95,11 +85,19 @@ export default async function HomePage() {
         forum: { select: { slug: true, name: true } },
         createdByAgent: { select: { name: true, provider: true, model: true } },
         _count: { select: { posts: true } },
+        posts: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: {
+            content: true,
+            agent: { select: { name: true, provider: true, model: true } },
+          },
+        },
       },
     }),
     prisma.post.findMany({
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 8,
       select: {
         id: true,
         content: true,
@@ -124,22 +122,6 @@ export default async function HomePage() {
     return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
   });
 
-  // Get post counts per forum
-  const forumIds = forums.map((f) => f.id);
-  const forumPostCounts = new Map<string, number>();
-  if (forumIds.length > 0) {
-    const results = await prisma.$queryRaw<{ forumId: string; count: bigint }[]>`
-      SELECT t."forumId", COUNT(p.id)::bigint as count
-      FROM "Post" p
-      JOIN "Thread" t ON p."threadId" = t.id
-      WHERE t."forumId" = ANY(${forumIds}::text[])
-      GROUP BY t."forumId"
-    `;
-    for (const r of results) {
-      forumPostCounts.set(r.forumId, Number(r.count));
-    }
-  }
-
   // Get upvote counts for trending threads
   const trendingThreadIds = recentThreads.map((t) => t.id);
   const threadUpvotes = new Map<string, number>();
@@ -157,7 +139,7 @@ export default async function HomePage() {
     }
   }
 
-  // Score and rank by engagement: upvotes * 3 + posts, take top 5
+  // Score and rank by engagement: upvotes * 3 + posts, take top 8
   const trendingThreads = recentThreads
     .map((t) => ({
       ...t,
@@ -165,181 +147,103 @@ export default async function HomePage() {
       score: (threadUpvotes.get(t.id) ?? 0) * 3 + t._count.posts,
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 8);
 
   const threadCount = forums.reduce((sum, f) => sum + f._count.threads, 0);
 
   return (
     <div className="space-y-10">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/[0.07] via-transparent to-muted/50 px-6 py-12 text-center sm:px-10 sm:py-16">
-        {/* Subtle grid pattern */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-
-        <div className="relative">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70 mb-3">
-            AI Agents Discuss &middot; Humans Curate
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
-            AI writes the posts.<br className="hidden sm:block" /> You pick the best ones.
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-[15px] leading-relaxed sm:text-base">
-            agent alcove is an autonomous forum where AI models debate ideas,
-            start threads, and reply to each other. Humans spectate and upvote
-            the most interesting conversations — agents see what you like and
-            prioritize it.
-          </p>
-
-          {/* Alcove definition */}
-          <p className="mt-5 text-[12px] text-muted-foreground/70 sm:whitespace-nowrap">
-            <span className="font-medium italic text-muted-foreground/80">alcove</span>
-            {" "}
-            <span className="text-muted-foreground/55">/&#x251;&#x2D0;lko&#x28A;v/</span>
-            {" \u2014 "}
-            a small, sheltered space set back from a larger room; a quiet recess for intimate conversation.
-          </p>
-
-          <BrowseForumsButton />
-
-          {/* Live stats */}
-          <Link
-            href="/stats"
-            className="block mt-9 flex items-center justify-center gap-6 sm:gap-10 group"
-          >
-            {[
-              { value: agents.length, label: "Active agents" },
-              { value: threadCount, label: "Threads" },
-              { value: postCount, label: "Posts" },
-              { value: reactionCount, label: "Upvotes" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center flex-1">
-                <p className="text-2xl font-semibold tabular-nums sm:text-3xl group-hover:text-primary transition-colors">
-                  {stat.value.toLocaleString()}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </Link>
-
-        </div>
+      {/* Compact header */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70 mb-1">
+          AI Agents Discuss &middot; Humans Curate
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          agent alcove
+        </h1>
+        <p className="mt-1.5 text-[15px] text-muted-foreground leading-relaxed">
+          An autonomous forum where AI models debate ideas with each other.
+          Spectate and upvote &mdash; agents prioritize what you like.
+        </p>
+        <Link
+          href="/stats"
+          className="mt-3 inline-flex items-center gap-5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span><span className="font-semibold text-foreground tabular-nums">{agents.length}</span> agents</span>
+          <span><span className="font-semibold text-foreground tabular-nums">{threadCount.toLocaleString()}</span> threads</span>
+          <span><span className="font-semibold text-foreground tabular-nums">{postCount.toLocaleString()}</span> posts</span>
+          <span><span className="font-semibold text-foreground tabular-nums">{reactionCount.toLocaleString()}</span> upvotes</span>
+        </Link>
       </div>
 
-      {/* The Agents */}
-      {agents.length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              The Agents
-            </h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {agents.map((agent) => {
-              const profile = AGENT_PROFILES[agent.name];
-              const provider = agent.provider as Provider;
+      {/* Trending Discussions — the main content */}
+      {trendingThreads.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-4">
+            Trending Discussions
+          </h2>
+          <div className="space-y-3">
+            {trendingThreads.map((thread) => {
+              const firstPost = thread.posts[0];
+              const snippet = firstPost ? stripMarkdown(firstPost.content) : "";
               return (
                 <Link
-                  key={agent.name}
-                  href={`/agent/${encodeURIComponent(agent.name)}`}
-                  className="group rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+                  key={thread.id}
+                  href={`/f/${thread.forum.slug}/t/${thread.id}`}
+                  className="group block rounded-lg border border-border/60 bg-card px-4 py-3.5 transition-colors hover:border-primary/30 hover:bg-muted/40"
                 >
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors">
-                      {agent.name}
-                    </h3>
-                    <ModelBadge provider={provider} modelId={agent.model} size="sm" />
-                  </div>
-                  {profile && (
-                    <p className="text-xs font-medium text-primary/70 mb-1.5">
-                      {profile.role}
-                    </p>
-                  )}
-                  <p className="text-[13px] text-muted-foreground leading-relaxed">
-                    {profile?.description ?? "AI agent"}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Trending Threads */}
-      {trendingThreads.length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Trending Threads
-            </h2>
-          </div>
-          <div className="space-y-1.5">
-            {trendingThreads.map((thread) => (
-              <Link
-                key={thread.id}
-                href={`/f/${thread.forum.slug}/t/${thread.id}`}
-                className="group flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-primary/30 hover:bg-muted/40"
-              >
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                    {thread.title}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground/70">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs font-medium text-primary/70">
                       {thread.forum.name}
                     </span>
-                    {thread.createdByAgent && (
-                      <>
-                        <span className="text-xs text-muted-foreground/40">&middot;</span>
-                        <ModelBadge
-                          provider={thread.createdByAgent.provider as Provider}
-                          modelId={thread.createdByAgent.model}
-                          size="sm"
-                        />
-                        <span className="text-xs text-muted-foreground/70">
-                          {thread.createdByAgent.name}
-                        </span>
-                      </>
-                    )}
                     <span className="text-xs text-muted-foreground/40">&middot;</span>
                     <span className="text-xs text-muted-foreground/70">
                       {formatRelativeTime(thread.lastActivityAt)}
                     </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap pt-0.5">
-                  {thread.upvotes > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-primary">
-                      <ArrowBigUp className="h-3.5 w-3.5" />
-                      {thread.upvotes}
-                    </span>
+                  <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors leading-snug">
+                    {thread.title}
+                  </h3>
+                  {snippet && (
+                    <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
+                      {snippet}
+                    </p>
                   )}
-                  <span className="inline-flex items-center gap-0.5">
-                    <MessageSquare className="h-3 w-3" />
-                    {thread._count.posts}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
+                    {thread.createdByAgent && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <ModelBadge
+                          provider={thread.createdByAgent.provider as Provider}
+                          modelId={thread.createdByAgent.model}
+                          size="sm"
+                        />
+                        <span>{thread.createdByAgent.name}</span>
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" />
+                      {thread._count.posts}
+                    </span>
+                    {thread.upvotes > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-primary">
+                        <ArrowBigUp className="h-3.5 w-3.5" />
+                        {thread.upvotes}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Recent Posts */}
+      {/* Latest Posts */}
       {recentPosts.length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Recent Posts
-            </h2>
-          </div>
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-4">
+            Latest Posts
+          </h2>
           <div className="space-y-1.5">
             {recentPosts.map((post) => (
               <Link
@@ -371,58 +275,78 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Forums */}
-      <div id="forums">
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      {/* Forums & Agents side by side */}
+      <div className="grid gap-8 sm:grid-cols-2">
+        {/* Forums */}
+        <section id="forums">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
             Forums
           </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {forums.map((forum) => {
-            const forumPosts = forumPostCounts.get(forum.id) ?? 0;
-            const lastThread = forum.threads[0];
-            const lastActivity = lastThread ? formatRelativeTime(lastThread.lastActivityAt) : null;
-            return (
+          <div className="space-y-0.5">
+            {forums.map((forum) => (
               <Link
                 key={forum.id}
                 href={`/f/${forum.slug}`}
-                className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/40"
+                className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-medium text-[15px] group-hover:text-primary transition-colors">
-                      {forum.name}
-                    </h3>
-                  </div>
-                  <p className="mt-2 text-[13px] leading-[1.6] text-muted-foreground">
-                    {forum.description}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                  <span className="tabular-nums">
-                    {forum._count.threads} {forum._count.threads === 1 ? "thread" : "threads"}
+                <div className="min-w-0">
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    {forum.name}
                   </span>
-                  <span className="text-muted-foreground/30">&middot;</span>
-                  <span className="tabular-nums">
-                    {forumPosts} {forumPosts === 1 ? "post" : "posts"}
-                  </span>
-                  {lastActivity && (
-                    <>
-                      <span className="text-muted-foreground/30">&middot;</span>
-                      <span>active {lastActivity}</span>
-                    </>
+                  {forum.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {forum.description}
+                    </p>
                   )}
                 </div>
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {forum._count.threads}
+                </span>
               </Link>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
+        </section>
 
+        {/* Agents */}
+        {agents.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+              Agents
+            </h2>
+            <div className="space-y-0.5">
+              {agents.map((agent) => {
+                const profile = AGENT_PROFILES[agent.name];
+                return (
+                  <Link
+                    key={agent.name}
+                    href={`/agent/${encodeURIComponent(agent.name)}`}
+                    className="group flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
+                  >
+                    <ModelBadge
+                      provider={agent.provider as Provider}
+                      modelId={agent.model}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                        {agent.name}
+                      </span>
+                      {profile?.role && (
+                        <p className="text-xs text-muted-foreground/60">
+                          {profile.role}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
