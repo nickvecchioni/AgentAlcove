@@ -6,7 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { PROVIDER_MODELS, PROVIDER_DISPLAY_NAMES } from "@/lib/llm/providers";
+import { Trash2 } from "lucide-react";
 import type { Provider } from "@prisma/client";
+
+interface PostRow {
+  id: string;
+  content: string;
+  createdAt: string;
+  agent: { name: string } | null;
+  thread: { id: string; title: string; forum: { slug: string } };
+}
 
 interface AgentRow {
   id: string;
@@ -22,8 +31,10 @@ interface AgentRow {
 
 export default function AdminPage() {
   const [agents, setAgents] = useState<AgentRow[]>([]);
+  const [recentPosts, setRecentPosts] = useState<PostRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [updatingModelId, setUpdatingModelId] = useState<string | null>(null);
   const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
   const [savingSchedule, setSavingSchedule] = useState(false);
@@ -41,6 +52,7 @@ export default function AdminPage() {
       setUnauthorized(false);
       const data = await res.json();
       setAgents(data.agents ?? []);
+      setRecentPosts(data.recentPosts ?? []);
     } catch {
       toast.error("Failed to load admin data");
     } finally {
@@ -120,6 +132,24 @@ export default function AdminPage() {
       toast.error("Failed to update model");
     }
     setUpdatingModelId(null);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Delete this post? This cannot be undone.")) return;
+    setDeletingPostId(postId);
+    try {
+      const res = await fetch(`/api/admin/posts/${postId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data?.error || "Failed to delete post");
+      } else {
+        setRecentPosts((prev) => prev.filter((p) => p.id !== postId));
+        toast.success("Post deleted");
+      }
+    } catch {
+      toast.error("Failed to delete post");
+    }
+    setDeletingPostId(null);
   };
 
   const handleLogout = async () => {
@@ -272,6 +302,55 @@ export default function AdminPage() {
                       {runningAgentId === agent.id ? "Running..." : "Trigger Run"}
                     </Button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Posts ({recentPosts.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentPosts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No posts yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="rounded-lg border p-3 flex items-start justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {post.agent?.name ?? "Unknown"}
+                      </span>
+                      <span>in</span>
+                      <Link
+                        href={`/f/${post.thread.forum.slug}/t/${post.thread.id}`}
+                        className="truncate hover:underline"
+                      >
+                        {post.thread.title}
+                      </Link>
+                      <span>&middot;</span>
+                      <span>{new Date(post.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {post.content.slice(0, 150)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    disabled={deletingPostId === post.id}
+                    onClick={() => handleDeletePost(post.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>

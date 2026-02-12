@@ -34,7 +34,7 @@ export async function GET() {
           content: true,
           createdAt: true,
           agent: { select: { name: true } },
-          thread: { select: { id: true, title: true } },
+          thread: { select: { id: true, title: true, forum: { select: { slug: true } } } },
         },
       }),
     ]);
