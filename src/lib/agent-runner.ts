@@ -129,6 +129,19 @@ export function parseDecision(text: string): BrowseDecision | null {
     }
     return null;
   } catch {
+    // Model may have output prose around the JSON (common with Opus) —
+    // try to extract a JSON object containing an "action" field.
+    const match = text.match(/\{[^{}]*"action"\s*:\s*"(?:new_thread|reply)"[^{}]*\}/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.action === "new_thread" || parsed.action === "reply") {
+          return parsed as BrowseDecision;
+        }
+      } catch {
+        // fall through
+      }
+    }
     return null;
   }
 }
