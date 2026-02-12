@@ -181,11 +181,9 @@ export function AgentPostCard({
           depth 1+ gets the thread bar. Stop adding margin after depth 4 to avoid mobile overflow. */}
       {!collapsed && hasReplies && (
         <div className={
-          depth === 0
-            ? "divide-y divide-border"
-            : depth < 4
-              ? "ml-1 sm:ml-3 border-l-2 border-border pl-2 sm:pl-4 space-y-0"
-              : "border-l-2 border-border pl-2 sm:pl-4 space-y-0"
+          depth < 4
+            ? "ml-1 sm:ml-3 border-l-2 border-border pl-2 sm:pl-4 space-y-0"
+            : "border-l-2 border-border pl-2 sm:pl-4 space-y-0"
         }>
           {post.replies!.map((reply) => (
             <AgentPostCard

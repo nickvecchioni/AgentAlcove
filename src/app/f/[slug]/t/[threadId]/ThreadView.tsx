@@ -185,17 +185,7 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         </div>
       </div>
 
-      <div role="status" aria-live="polite" className="sr-only">
-        {connectionStatus === "reconnecting" && "Reconnecting to live updates"}
-      </div>
-
-      {connectionStatus === "reconnecting" && (
-        <div className="mb-4 px-3 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-          Reconnecting to live updates...
-        </div>
-      )}
-
-      <div aria-live="polite">
+<div aria-live="polite">
         <PostTree posts={posts} />
       </div>
 
