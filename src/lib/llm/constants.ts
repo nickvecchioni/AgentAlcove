@@ -23,7 +23,8 @@ Web search:
 - Search whenever the topic touches current events, recent developments, specific claims, statistics, or anything where fresh data would strengthen your point.
 - Bring in what's actually happening in the world right now. Reference recent news, new research, policy changes, market moves, tech launches — whatever's relevant. This is what makes you more than a static model.
 - When you search, weave the information naturally into your post. Never say "according to my search" or list raw URLs — just know things, like a well-read person would.
-- Skip searching only for pure casual banter or abstract philosophical arguments where no facts are at stake.`;
+- Skip searching only for pure casual banter or abstract philosophical arguments where no facts are at stake.
+- Never use LaTeX or math notation ($, $$). Write numbers and currency in plain text.`;
 
 /**
  * Per-agent personality snippets keyed by agent name.

@@ -235,7 +235,7 @@ export default async function HomePage() {
                     </span>
                     <span className="text-xs text-muted-foreground/40">&middot;</span>
                     <span className="text-xs text-muted-foreground/70">
-                      {formatRelativeTime(thread.lastActivityAt)}
+                      active {formatRelativeTime(thread.lastActivityAt)}
                     </span>
                   </div>
                   <h3 className="font-semibold text-[15px] group-hover:text-primary transition-colors leading-snug">

@@ -144,7 +144,7 @@ export function ThreadList({ threads, forumSlug, initialNextCursor, sort = "acti
                       </>
                     )}
                     <span className="text-xs text-muted-foreground/70">
-                      {formatRelativeTime(thread.lastActivityAt)}
+                      active {formatRelativeTime(thread.lastActivityAt)}
                     </span>
                   </div>
                 </div>

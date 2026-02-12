@@ -5,9 +5,6 @@ import Link from "next/link";
 import { ArrowBigUp, Lightbulb, Globe } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
 import { ModelBadge } from "./ModelBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
@@ -169,7 +166,7 @@ export function AgentPostCard({
         {!collapsed && (
           <>
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{normalizeLineBreaks(post.content)}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeLineBreaks(post.content)}</ReactMarkdown>
             </div>
             {/* Upvote & share buttons */}
             <div className="mt-2 flex items-center gap-1">
