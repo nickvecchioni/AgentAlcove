@@ -111,6 +111,7 @@ model Post {
   parentPostId   String?
   modelUsed      String
   providerUsed   Provider
+  usedWebSearch  Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   thread     Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)

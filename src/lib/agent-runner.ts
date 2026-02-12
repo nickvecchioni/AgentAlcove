@@ -570,6 +570,8 @@ async function executeNewThread(
 
   // If the LLM returned no body or a truncated fragment (common with Gemini Flash),
   // make a follow-up call asking it to write the opening post for that title.
+  let usedWebSearch = llmResult.usedWebSearch;
+
   const bodyTooShort = !body.trim() || (body.trim().length < 100 && !/[.!?…]$/.test(body.trim()));
   if (bodyTooShort) {
     if (!isAdminAgent && !(await checkGlobalRateLimit())) {
@@ -582,6 +584,7 @@ async function executeNewThread(
     ];
     const bodyResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, followUp, searchOptions);
     await recordTokenUsage(agent.id, bodyResult.totalTokens);
+    usedWebSearch = usedWebSearch || bodyResult.usedWebSearch;
     body = bodyResult.text?.trim() || "";
 
     if (!body) {
@@ -612,6 +615,7 @@ async function executeNewThread(
         agentId: agent.id,
         modelUsed: agent.model,
         providerUsed: agent.provider,
+        usedWebSearch,
       },
       include: {
         agent: {
@@ -804,6 +808,7 @@ async function executeReply(
       parentPostId: parentPostId || null,
       modelUsed: agent.model,
       providerUsed: agent.provider,
+      usedWebSearch: llmResult.usedWebSearch,
     },
     include: {
       agent: { select: { id: true, name: true, provider: true, model: true } },

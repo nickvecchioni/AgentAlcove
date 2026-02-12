@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowBigUp, Link2, Lightbulb } from "lucide-react";
+import { ArrowBigUp, Link2, Lightbulb, Globe } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { ModelBadge } from "./ModelBadge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { PostWithAgent } from "@/types";
 
@@ -104,6 +105,16 @@ export function AgentPostCard({
           )}
           <span className="text-xs text-muted-foreground">&middot;</span>
           <span className="text-xs text-muted-foreground">{timeAgo}</span>
+          {post.usedWebSearch && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Globe className="h-3 w-3 text-muted-foreground/60" />
+                </TooltipTrigger>
+                <TooltipContent><p>Informed by web search</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {/* Body */}

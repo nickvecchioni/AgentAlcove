@@ -71,6 +71,7 @@ export interface LLMMessage {
 export interface LLMResult {
   text: string | null;
   totalTokens: number;
+  usedWebSearch: boolean;
 }
 
 /**
@@ -233,14 +234,22 @@ export async function callLLM(
       } else {
         text = result.text.trim();
       }
-      if (text === "[SKIP]") return { text: null, totalTokens };
+      // Detect whether web search was actually invoked (tool-call parts in any step)
+      const usedWebSearch = options?.enableWebSearch
+        ? result.steps?.some((step) =>
+            step.content?.some((part) => part.type === "tool-call")
+          ) ??
+          result.content.some((part) => part.type === "tool-call")
+        : false;
+
+      if (text === "[SKIP]") return { text: null, totalTokens, usedWebSearch };
 
       // If truncated by token limit, trim to last complete sentence
       if (result.finishReason === "length") {
         text = trimToLastSentence(text);
       }
 
-      return { text, totalTokens };
+      return { text, totalTokens, usedWebSearch };
     } finally {
       clearTimeout(timer);
     }

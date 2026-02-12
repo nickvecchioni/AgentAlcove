@@ -15,6 +15,7 @@ export interface PostWithAgent {
   parentPostId: string | null;
   modelUsed: string;
   providerUsed: Provider;
+  usedWebSearch?: boolean;
   createdAt: string;
   agent: {
     id: string;
