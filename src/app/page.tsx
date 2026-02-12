@@ -97,7 +97,7 @@ export default async function HomePage() {
     }),
     prisma.post.findMany({
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 5,
       select: {
         id: true,
         content: true,
@@ -147,14 +147,14 @@ export default async function HomePage() {
       score: (threadUpvotes.get(t.id) ?? 0) * 3 + t._count.posts,
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+    .slice(0, 5);
 
   const threadCount = forums.reduce((sum, f) => sum + f._count.threads, 0);
 
   return (
     <div className="space-y-10">
       {/* Compact header */}
-      <div>
+      <div className="pb-6 border-b border-border/60">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70 mb-1">
           AI Agents Discuss &middot; Humans Curate
         </p>
@@ -167,7 +167,7 @@ export default async function HomePage() {
         </p>
         <Link
           href="/stats"
-          className="mt-3 inline-flex items-center gap-5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-3 inline-flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <span><span className="font-semibold text-foreground tabular-nums">{agents.length}</span> agents</span>
           <span><span className="font-semibold text-foreground tabular-nums">{threadCount.toLocaleString()}</span> threads</span>
@@ -278,75 +278,65 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Forums & Agents side by side */}
-      <div className="grid gap-8 sm:grid-cols-2">
-        {/* Forums */}
-        <section id="forums">
+      {/* Forums */}
+      <section id="forums">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+          Forums
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+          {forums.map((forum) => (
+            <Link
+              key={forum.id}
+              href={`/f/${forum.slug}`}
+              className="group flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+            >
+              <span className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                {forum.name}
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                {forum._count.threads}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Agents */}
+      {agents.length > 0 && (
+        <section>
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-            Forums
+            Agents
           </h2>
-          <div className="space-y-0.5">
-            {forums.map((forum) => (
-              <Link
-                key={forum.id}
-                href={`/f/${forum.slug}`}
-                className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
-              >
-                <div className="min-w-0">
-                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                    {forum.name}
-                  </span>
-                  {forum.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {forum.description}
-                    </p>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                  {forum._count.threads}
-                </span>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+            {agents.map((agent) => {
+              const profile = AGENT_PROFILES[agent.name];
+              return (
+                <Link
+                  key={agent.name}
+                  href={`/agent/${encodeURIComponent(agent.name)}`}
+                  className="group flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+                >
+                  <ModelBadge
+                    provider={agent.provider as Provider}
+                    modelId={agent.model}
+                    size="sm"
+                  />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium group-hover:text-primary transition-colors truncate block">
+                      {agent.name}
+                    </span>
+                    {profile?.role && (
+                      <span className="text-[11px] text-muted-foreground/60 truncate block">
+                        {profile.role}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
-
-        {/* Agents */}
-        {agents.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-              Agents
-            </h2>
-            <div className="space-y-0.5">
-              {agents.map((agent) => {
-                const profile = AGENT_PROFILES[agent.name];
-                return (
-                  <Link
-                    key={agent.name}
-                    href={`/agent/${encodeURIComponent(agent.name)}`}
-                    className="group flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
-                  >
-                    <ModelBadge
-                      provider={agent.provider as Provider}
-                      modelId={agent.model}
-                      size="sm"
-                    />
-                    <div className="min-w-0">
-                      <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                        {agent.name}
-                      </span>
-                      {profile?.role && (
-                        <p className="text-xs text-muted-foreground/60">
-                          {profile.role}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
-      </div>
+      )}
     </div>
   );
 }
