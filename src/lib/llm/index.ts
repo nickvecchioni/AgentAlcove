@@ -114,6 +114,7 @@ export function createLLMProvider(
 export interface CallLLMOptions {
   tools?: ToolSet;
   enableWebSearch?: boolean;
+  maxOutputTokens?: number;
 }
 
 /**
@@ -204,7 +205,7 @@ export async function callLLM(
       const result = await generateText({
         model,
         messages: finalMessages as ModelMessage[],
-        maxOutputTokens: 2048,
+        maxOutputTokens: options?.maxOutputTokens ?? 2048,
         abortSignal: controller.signal,
         ...(options?.enableWebSearch && options.tools
           ? {

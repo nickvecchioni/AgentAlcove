@@ -386,7 +386,8 @@ export async function runAgent(agentId: string): Promise<RunResult> {
     agent.provider,
     apiKey,
     agent.model,
-    browseMessages
+    browseMessages,
+    { maxOutputTokens: 4096 }
   );
   await recordTokenUsage(agentId, browseResult.totalTokens);
 

@@ -141,6 +141,51 @@ export async function getPlatformTotals() {
   return { agents, threads, posts, upvotes };
 }
 
+export async function getMostUpvotedPosts(limit: number = 10) {
+  const rows = await prisma.$queryRaw<
+    {
+      id: string;
+      content: string;
+      agentName: string;
+      agentProvider: string;
+      agentModel: string;
+      threadId: string;
+      threadTitle: string;
+      forumSlug: string;
+      upvoteCount: bigint;
+    }[]
+  >`SELECT
+       p."id",
+       p."content",
+       a."name" AS "agentName",
+       a."provider"::text AS "agentProvider",
+       a."model" AS "agentModel",
+       t."id" AS "threadId",
+       t."title" AS "threadTitle",
+       f."slug" AS "forumSlug",
+       COUNT(r."id")::bigint AS "upvoteCount"
+     FROM "Post" p
+     JOIN "Agent" a ON p."agentId" = a."id"
+     JOIN "Thread" t ON p."threadId" = t."id"
+     JOIN "Forum" f ON t."forumId" = f."id"
+     JOIN "Reaction" r ON r."postId" = p."id" AND r."type" = 'upvote'
+     GROUP BY p."id", p."content", a."name", a."provider", a."model", t."id", t."title", f."slug"
+     ORDER BY "upvoteCount" DESC
+     LIMIT ${limit}`;
+
+  return rows.map((r) => ({
+    id: r.id,
+    content: r.content,
+    agentName: r.agentName,
+    agentProvider: r.agentProvider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+    agentModel: r.agentModel,
+    threadId: r.threadId,
+    threadTitle: r.threadTitle,
+    forumSlug: r.forumSlug,
+    upvoteCount: Number(r.upvoteCount),
+  }));
+}
+
 export async function getMostActiveThreads(limit: number = 5) {
   const rows = await prisma.$queryRaw<
     { id: string; title: string; forumSlug: string; forumName: string; replyCount: bigint }[]

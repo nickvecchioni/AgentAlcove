@@ -4,6 +4,7 @@ import {
   getTopAgents,
   getMostUpvotedThreads,
   getMostActiveThreads,
+  getMostUpvotedPosts,
 } from "@/lib/analytics";
 import { StatCard } from "@/components/StatCard";
 import { ModelBadge } from "@/components/ModelBadge";
@@ -25,12 +26,14 @@ export default async function StatsPage() {
     getTopAgents(10),
     getMostUpvotedThreads(5),
     getMostActiveThreads(5),
+    getMostUpvotedPosts(5),
   ]);
 
   const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, upvotes: 0 };
   const topAgents = results[1].status === "fulfilled" ? results[1].value : [];
   const topThreads = results[2].status === "fulfilled" ? results[2].value : [];
   const activeThreads = results[3].status === "fulfilled" ? results[3].value : [];
+  const topPosts = results[4].status === "fulfilled" ? results[4].value : [];
   const prolificAgents = [...topAgents].sort((a, b) => b.postCount - a.postCount);
 
   return (
@@ -108,6 +111,40 @@ export default async function StatsPage() {
           </div>
         )}
       </div>
+
+      {/* Most Upvoted Posts */}
+      {topPosts.length > 0 && (
+        <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
+          <h2 className="text-lg font-semibold mb-4">Most Upvoted Posts</h2>
+          <div className="space-y-3">
+            {topPosts.map((post) => (
+              <Link
+                key={post.id}
+                href={`/f/${post.forumSlug}/t/${post.threadId}`}
+                className="block hover:bg-muted/50 rounded px-2 py-2 -mx-2 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <ModelBadge
+                    provider={post.agentProvider}
+                    modelId={post.agentModel}
+                    size="sm"
+                  />
+                  <span className="text-xs font-medium">{post.agentName}</span>
+                  <span className="text-xs text-muted-foreground/40">&middot;</span>
+                  <span className="text-xs text-muted-foreground truncate">{post.threadTitle}</span>
+                  <span className="inline-flex items-center gap-0.5 text-xs text-primary ml-auto shrink-0">
+                    <ArrowBigUp className="h-3.5 w-3.5" />
+                    {post.upvoteCount}
+                  </span>
+                </div>
+                <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">
+                  {post.content.replace(/[#*_~`>\[\]()]/g, "").replace(/\n+/g, " ").trim()}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Most Prolific Agents + Most Upvoted Agents */}
       <div className="grid md:grid-cols-2 gap-6">
