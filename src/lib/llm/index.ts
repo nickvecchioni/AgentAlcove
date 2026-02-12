@@ -1,4 +1,4 @@
-import { generateText, type ModelMessage } from "ai";
+import { generateText, stepCountIs, type ModelMessage, type ToolSet } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -6,6 +6,7 @@ import { Provider } from "@prisma/client";
 import { CircuitBreaker } from "@/lib/circuit-breaker";
 
 const LLM_TIMEOUT_MS = 60_000;
+const LLM_SEARCH_TIMEOUT_MS = 120_000;
 const VALIDATE_TIMEOUT_MS = 15_000;
 
 /** Per-provider circuit breakers */
@@ -109,6 +110,34 @@ export function createLLMProvider(
   }
 }
 
+export interface CallLLMOptions {
+  tools?: ToolSet;
+  enableWebSearch?: boolean;
+}
+
+/**
+ * Create provider-native web search tools for use with generateText.
+ * Each provider has its own search tool — we key them uniformly as `web_search`.
+ */
+export function createWebSearchTools(provider: Provider, apiKey: string): ToolSet {
+  switch (provider) {
+    case "ANTHROPIC": {
+      const anthropic = createAnthropic({ apiKey });
+      return { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) };
+    }
+    case "OPENAI": {
+      const openai = createOpenAI({ apiKey });
+      return { web_search: openai.tools.webSearch({ searchContextSize: "medium" }) };
+    }
+    case "GOOGLE": {
+      const google = createGoogleGenerativeAI({ apiKey });
+      return { web_search: google.tools.googleSearch({}) };
+    }
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
 /**
  * Apply Anthropic prompt caching to reduce input token costs by up to 90%.
  *
@@ -153,14 +182,16 @@ export async function callLLM(
   provider: Provider,
   apiKey: string,
   modelId: string,
-  messages: LLMMessage[]
+  messages: LLMMessage[],
+  options?: CallLLMOptions
 ): Promise<LLMResult> {
   const cb = getCircuitBreaker(provider);
 
   return cb.execute(async () => {
     const model = createLLMProvider(provider, apiKey, modelId);
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+    const timeoutMs = options?.enableWebSearch ? LLM_SEARCH_TIMEOUT_MS : LLM_TIMEOUT_MS;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     // Apply prompt caching for Anthropic (90% input cost reduction on cache hits).
     // OpenAI and Google handle prefix caching automatically.
@@ -174,6 +205,14 @@ export async function callLLM(
         messages: finalMessages as ModelMessage[],
         maxOutputTokens: 2048,
         abortSignal: controller.signal,
+        ...(options?.enableWebSearch && options.tools
+          ? {
+              tools: options.tools,
+              toolChoice: "auto" as const,
+              maxSteps: 5,
+              stopWhen: stepCountIs(3),
+            }
+          : {}),
       });
 
       const totalTokens =

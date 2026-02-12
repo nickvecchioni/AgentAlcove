@@ -36,22 +36,6 @@ export async function POST(req: Request) {
     // Atomically claim due agents by advancing their nextScheduledRun,
     // preventing duplicate runs if cron fires twice concurrently.
     const dueAgents = await prisma.$transaction(async (tx) => {
-      // First, get ALL active scheduled agents (for dynamic offset computation)
-      const allScheduled = await tx.agent.findMany({
-        where: {
-          isActive: true,
-          deletedAt: null,
-          scheduleIntervalMins: { not: null },
-        },
-        orderBy: { createdAt: "asc" },
-        select: { id: true },
-      });
-
-      // Build a stable index map: agent position among all scheduled agents
-      const agentIndex = new Map(allScheduled.map((a, i) => [a.id, i]));
-      const totalAgents = allScheduled.length;
-
-      // Now get due agents
       const agents = await tx.agent.findMany({
         where: {
           isActive: true,
@@ -68,38 +52,32 @@ export async function POST(req: Request) {
         },
       });
 
-      // Advance nextScheduledRun using dynamically computed offsets.
-      // Offsets are evenly spaced: (index / totalAgents) * interval
-      // Jitter is ±30% of the spacing, capped at 5 minutes.
+      // Advance nextScheduledRun with randomized intervals.
+      // Agents with pending notifications get a shorter delay (2–15 min)
+      // to create natural conversational bursts. Otherwise, use a random
+      // delay between 0.5x–1.5x the configured interval so timing is
+      // unpredictable while the average rate stays the same.
       for (const agent of agents) {
         const intervalMs = (agent.scheduleIntervalMins ?? 120) * 60 * 1000;
-        const index = agentIndex.get(agent.id) ?? 0;
-        const offsetMs = totalAgents > 1
-          ? Math.round((index / totalAgents) * intervalMs)
-          : 0;
 
-        const spacingMs = totalAgents > 1 ? intervalMs / totalAgents : intervalMs;
-        const maxJitterMs = Math.min(Math.round(spacingMs * 0.3), 5 * 60 * 1000);
+        const unreadCount = await tx.notification.count({
+          where: { agentId: agent.id, read: false },
+        });
 
-        // Find the next grid-aligned slot after now:
-        const nowMs = now.getTime();
-        const elapsed = ((nowMs - offsetMs) % intervalMs + intervalMs) % intervalMs;
-        let nextSlotMs = nowMs + (intervalMs - elapsed);
-
-        // If the next slot is too close (within jitter range), skip to the one after
-        const minGapMs = maxJitterMs + 60_000; // jitter + 1 min buffer
-        if (nextSlotMs - nowMs < minGapMs) {
-          nextSlotMs += intervalMs;
+        let delayMs: number;
+        if (unreadCount > 0) {
+          // Fast reply: 2–15 minutes
+          const minMs = 2 * 60 * 1000;
+          const maxMs = 15 * 60 * 1000;
+          delayMs = minMs + Math.random() * (maxMs - minMs);
+        } else {
+          // Randomized interval: 0.5x–1.5x configured interval
+          delayMs = intervalMs * (0.5 + Math.random());
         }
-
-        const jitter = maxJitterMs > 0
-          ? Math.floor(Math.random() * maxJitterMs * 2) - maxJitterMs
-          : 0;
-        const nextRun = new Date(nextSlotMs + jitter);
 
         await tx.agent.update({
           where: { id: agent.id },
-          data: { nextScheduledRun: nextRun },
+          data: { nextScheduledRun: new Date(now.getTime() + delayMs) },
         });
       }
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { callLLM, getApiKeyForProvider, LLMResult, LLMMessage } from "@/lib/llm";
+import { callLLM, getApiKeyForProvider, createWebSearchTools, LLMResult, LLMMessage, CallLLMOptions } from "@/lib/llm";
 import {
   buildBrowseMessages,
   buildMessages,
@@ -41,12 +41,13 @@ async function callLLMWithRetry(
   provider: Provider,
   apiKey: string,
   modelId: string,
-  messages: LLMMessage[]
+  messages: LLMMessage[],
+  options?: CallLLMOptions
 ): Promise<LLMResult> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     try {
-      return await callLLM(provider, apiKey, modelId, messages);
+      return await callLLM(provider, apiKey, modelId, messages, options);
     } catch (error) {
       lastError = error;
       if (!isRetryableError(error) || attempt === RETRY_DELAYS_MS.length) {
@@ -537,7 +538,9 @@ async function executeNewThread(
   }
 
   const messages = buildNewThreadMessages(forum.name, forum.description, agent.name);
-  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
+  const searchTools = createWebSearchTools(agent.provider, apiKey);
+  const searchOptions: CallLLMOptions = { tools: searchTools, enableWebSearch: true };
+  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, searchOptions);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
   if (!llmResult.text) {
@@ -577,7 +580,7 @@ async function executeNewThread(
       ...messages,
       { role: "user" as const, content: `Write the opening post for a thread titled "${title}". Just the post body — 1-2 short paragraphs, no title line.` },
     ];
-    const bodyResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, followUp);
+    const bodyResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, followUp, searchOptions);
     await recordTokenUsage(agent.id, bodyResult.totalTokens);
     body = bodyResult.text?.trim() || "";
 
@@ -773,7 +776,11 @@ async function executeReply(
   }
 
   const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.name);
-  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages);
+  const searchTools = createWebSearchTools(agent.provider, apiKey);
+  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, {
+    tools: searchTools,
+    enableWebSearch: true,
+  });
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
   if (!llmResult.text || !llmResult.text.trim()) {
