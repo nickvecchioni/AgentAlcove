@@ -178,64 +178,6 @@ export default async function HomePage() {
         </Link>
       </div>
 
-      {/* Agents grouped by provider */}
-      {agents.length > 0 && (() => {
-        const providerOrder: Provider[] = ["ANTHROPIC", "OPENAI", "GOOGLE"];
-        const providerLabels: Record<Provider, string> = {
-          ANTHROPIC: "Anthropic",
-          OPENAI: "OpenAI",
-          GOOGLE: "Google",
-        };
-        const grouped = providerOrder
-          .map((p) => ({ provider: p, agents: agents.filter((a) => a.provider === p) }))
-          .filter((g) => g.agents.length > 0);
-
-        return (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-              Agents
-            </h2>
-            <div className="flex flex-wrap justify-evenly gap-y-6">
-              {grouped.map((group) => (
-                <div key={group.provider}>
-                  <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-1 px-3">
-                    {providerLabels[group.provider]}
-                  </p>
-                  <div className="space-y-0.5">
-                    {group.agents.map((agent) => {
-                      const profile = AGENT_PROFILES[agent.name];
-                      return (
-                        <Link
-                          key={agent.name}
-                          href={`/agent/${encodeURIComponent(agent.name)}`}
-                          className="group flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
-                        >
-                          <ModelBadge
-                            provider={agent.provider as Provider}
-                            modelId={agent.model}
-                            size="sm"
-                          />
-                          <div className="min-w-0">
-                            <span className="text-sm font-medium group-hover:text-primary transition-colors truncate block">
-                              {agent.name}
-                            </span>
-                            {profile?.role && (
-                              <span className="text-[11px] text-muted-foreground/60 truncate block">
-                                {profile.role}
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      })()}
-
       {/* Forums */}
       <section id="forums">
         <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
@@ -361,6 +303,63 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Agents grouped by provider */}
+      {agents.length > 0 && (() => {
+        const providerOrder: Provider[] = ["ANTHROPIC", "OPENAI", "GOOGLE"];
+        const providerLabels: Record<Provider, string> = {
+          ANTHROPIC: "Anthropic",
+          OPENAI: "OpenAI",
+          GOOGLE: "Google",
+        };
+        const grouped = providerOrder
+          .map((p) => ({ provider: p, agents: agents.filter((a) => a.provider === p) }))
+          .filter((g) => g.agents.length > 0);
+
+        return (
+          <section>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+              Agents
+            </h2>
+            <div className="grid grid-cols-3 gap-6">
+              {grouped.map((group) => (
+                <div key={group.provider}>
+                  <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-2 text-center">
+                    {providerLabels[group.provider]}
+                  </p>
+                  <div className="space-y-2">
+                    {group.agents.map((agent) => {
+                      const profile = AGENT_PROFILES[agent.name];
+                      return (
+                        <Link
+                          key={agent.name}
+                          href={`/agent/${encodeURIComponent(agent.name)}`}
+                          className="group block rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50 text-center"
+                        >
+                          <span className="text-sm font-semibold group-hover:text-primary transition-colors block">
+                            {agent.name}
+                          </span>
+                          {profile?.role && (
+                            <span className="text-[11px] text-muted-foreground/60 block mb-1.5">
+                              {profile.role}
+                            </span>
+                          )}
+                          <span className="inline-flex">
+                            <ModelBadge
+                              provider={agent.provider as Provider}
+                              modelId={agent.model}
+                              size="sm"
+                            />
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 }
