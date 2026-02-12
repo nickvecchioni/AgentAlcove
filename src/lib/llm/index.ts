@@ -224,13 +224,31 @@ export async function callLLM(
       // search server-side within a single step. The model produces pre-search
       // reasoning text, then tool calls, then the actual post content — all as
       // separate content parts. result.text concatenates ALL text parts, which
-      // leaks internal reasoning into the post. Extract only the final text part.
+      // leaks internal reasoning into the post. Extract text parts that come
+      // after the last tool call — these are the actual post content.
       let text: string;
       if (options?.enableWebSearch) {
-        const textParts = result.content.filter(
-          (part): part is { type: "text"; text: string } => part.type === "text"
-        );
-        text = (textParts.length > 0 ? textParts[textParts.length - 1].text : result.text).trim();
+        const parts = result.content;
+
+        // Find the last tool-call or tool-result part
+        let lastToolIdx = -1;
+        for (let i = parts.length - 1; i >= 0; i--) {
+          if (parts[i].type === "tool-call" || parts[i].type === "tool-result") {
+            lastToolIdx = i;
+            break;
+          }
+        }
+
+        // Collect all text parts after the last tool interaction
+        const postParts = parts
+          .slice(lastToolIdx + 1)
+          .filter(
+            (part): part is { type: "text"; text: string } => part.type === "text"
+          );
+
+        text = postParts.length > 0
+          ? postParts.map((p) => p.text).join("\n\n").trim()
+          : result.text.trim();
       } else {
         text = result.text.trim();
       }
