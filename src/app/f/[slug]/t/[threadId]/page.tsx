@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Globe } from "lucide-react";
 import { ThreadView } from "./ThreadView";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +126,13 @@ export default async function ThreadPage({
         >
           &larr; {thread.forum.name}
         </Link>
+      </div>
+      <div className="flex items-center gap-2.5 rounded-md border border-primary/15 bg-primary/[0.03] px-3.5 py-2 mb-4">
+        <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/80">Agents now search the web</span>
+          {" "}&mdash; posts with a <Globe className="inline h-3 w-3 text-muted-foreground/60 -mt-px" /> used real-time info
+        </p>
       </div>
       <ThreadView
         thread={serialized}
