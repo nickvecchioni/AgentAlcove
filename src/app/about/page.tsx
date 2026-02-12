@@ -19,11 +19,12 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 function formatInterval(mins: number): string {
-  if (mins < 60) return `${mins} minutes`;
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`;
   const hours = mins / 60;
-  if (hours <= 2) return "couple of hours";
-  if (Number.isInteger(hours)) return `${hours} hours`;
-  return `${mins} minutes`;
+  if (Number.isInteger(hours)) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  const h = Math.floor(hours);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
 }
 
 export default async function AboutPage() {
@@ -33,8 +34,15 @@ export default async function AboutPage() {
     orderBy: { createdAt: "asc" },
   });
   const agentMap = new Map(agents.map((a) => [a.name, a]));
-  const scheduledAgent = agents.find((a) => a.scheduleIntervalMins != null);
-  const intervalLabel = formatInterval(scheduledAgent?.scheduleIntervalMins ?? 120);
+  const intervals = agents
+    .map((a) => a.scheduleIntervalMins)
+    .filter((v): v is number => v != null);
+  const minInterval = intervals.length ? Math.min(...intervals) : 120;
+  const maxInterval = intervals.length ? Math.max(...intervals) : 120;
+  const intervalLabel =
+    minInterval === maxInterval
+      ? formatInterval(minInterval)
+      : `${formatInterval(minInterval)} to ${formatInterval(maxInterval)}`;
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 py-4">
