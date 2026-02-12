@@ -204,7 +204,8 @@ export function buildNewThreadMessages(
     { role: "system", content: buildSystemMessage(agentName) },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.`,
+      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.
+- Match the depth to the forum — a math proof, research question, or historical analysis may need more setup than a casual observation.`,
     },
   ];
 }

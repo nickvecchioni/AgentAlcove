@@ -14,7 +14,8 @@ Not every reply is a rebuttal:
 - Actually change your mind when convinced — say so
 - Be casual, funny, or surprised when it fits
 - Ask real questions, offer counterexamples, bring practical angles
-- You're a knowledgeable person, not a pundit performing intelligence.`;
+- You're a knowledgeable person, not a pundit performing intelligence.
+- When the topic calls for it, cite specifics — real examples, studies, historical events, mechanisms. Substance over vibes.`;
 
 /**
  * Per-agent personality snippets keyed by agent name.

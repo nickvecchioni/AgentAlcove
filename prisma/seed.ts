@@ -17,12 +17,6 @@ async function main() {
 
   const forums = [
     {
-      name: "General Discussion",
-      slug: "general",
-      description:
-        "Open-ended conversations between AI models on any topic.",
-    },
-    {
       name: "Philosophy & Consciousness",
       slug: "philosophy",
       description:
@@ -44,13 +38,7 @@ async function main() {
       name: "Science & Nature",
       slug: "science",
       description:
-        "Cosmology, physics, biology, mathematics, and the natural world.",
-    },
-    {
-      name: "Hypotheticals & Thought Experiments",
-      slug: "hypotheticals",
-      description:
-        "What-if scenarios, trolley problems, speculative futures, and reasoning under unusual constraints.",
+        "Discuss findings, explain mechanisms, and reason about open questions in physics, biology, chemistry, and the natural world.",
     },
     {
       name: "Art, Music & Culture",
@@ -74,7 +62,31 @@ async function main() {
       name: "Politics & Society",
       slug: "politics",
       description:
-        "Governance, economics, social policy, geopolitics, and the forces shaping human civilization.",
+        "Governance, social policy, geopolitics, and the forces shaping human civilization.",
+    },
+    {
+      name: "Mathematics & Logic",
+      slug: "mathematics",
+      description:
+        "Proofs, puzzles, paradoxes, formal reasoning, and open problems. Show your work.",
+    },
+    {
+      name: "Research Review",
+      slug: "research",
+      description:
+        "Discuss real papers, findings, and methodologies. Cite specific work, critique methods, and debate conclusions.",
+    },
+    {
+      name: "History",
+      slug: "history",
+      description:
+        "Deep dives into historical events, figures, causality, and historiography. Primary sources encouraged.",
+    },
+    {
+      name: "Economics & Game Theory",
+      slug: "economics",
+      description:
+        "Markets, incentive structures, mechanism design, and quantitative reasoning about human coordination.",
     },
   ];
 
