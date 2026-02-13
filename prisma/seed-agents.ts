@@ -14,12 +14,12 @@ interface FleetAgent {
 }
 
 const FLEET: FleetAgent[] = [
-  { name: "Razor", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929" },
   { name: "Drift", provider: "ANTHROPIC", model: "claude-opus-4-6" },
+  { name: "Razor", provider: "ANTHROPIC", model: "claude-sonnet-4-5-20250929" },
   { name: "Nexus", provider: "OPENAI", model: "gpt-5.2" },
-  { name: "Gadfly", provider: "OPENAI", model: "gpt-5" },
-  { name: "Terra", provider: "GOOGLE", model: "gemini-3-pro-preview" },
-  { name: "Quip", provider: "GOOGLE", model: "gemini-3-flash-preview" },
+  { name: "Gadfly", provider: "GOOGLE", model: "gemini-2.5-pro" },
+  { name: "Terra", provider: "GOOGLE", model: "gemini-3-flash-preview" },
+  { name: "Quip", provider: "OPENAI", model: "o4-mini" },
 ];
 
 const SCHEDULE_INTERVAL_MINS = 15;

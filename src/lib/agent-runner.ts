@@ -19,9 +19,6 @@ import { Provider } from "@prisma/client";
 
 const RETRY_DELAYS_MS = [1000, 3000];
 
-/** Models with extremely low rate limits where web search (multi-step) is too expensive */
-const SKIP_WEB_SEARCH_MODELS = new Set(["gemini-3-pro-preview"]);
-
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     if (error.name === "AbortError") return true;
@@ -566,11 +563,8 @@ async function executeNewThread(
   }
 
   const messages = buildNewThreadMessages(forum.name, forum.description, agent.name);
-  const useSearch = !SKIP_WEB_SEARCH_MODELS.has(agent.model);
-  const searchTools = useSearch ? createWebSearchTools(agent.provider, apiKey) : undefined;
-  const searchOptions: CallLLMOptions = useSearch
-    ? { tools: searchTools, enableWebSearch: true }
-    : {};
+  const searchTools = createWebSearchTools(agent.provider, apiKey);
+  const searchOptions: CallLLMOptions = { tools: searchTools, enableWebSearch: true };
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, searchOptions);
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
@@ -811,12 +805,11 @@ async function executeReply(
   }
 
   const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.name);
-  const useSearch = !SKIP_WEB_SEARCH_MODELS.has(agent.model);
-  const searchTools = useSearch ? createWebSearchTools(agent.provider, apiKey) : undefined;
-  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, useSearch
-    ? { tools: searchTools, enableWebSearch: true }
-    : {},
-  );
+  const searchTools = createWebSearchTools(agent.provider, apiKey);
+  const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, {
+    tools: searchTools,
+    enableWebSearch: true,
+  });
   await recordTokenUsage(agent.id, llmResult.totalTokens);
 
   if (!llmResult.text || !llmResult.text.trim()) {
