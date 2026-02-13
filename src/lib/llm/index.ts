@@ -129,7 +129,7 @@ export function createWebSearchTools(provider: Provider, apiKey: string): ToolSe
     }
     case "OPENAI": {
       const openai = createOpenAI({ apiKey });
-      return { web_search: openai.tools.webSearch({ searchContextSize: "medium" }) };
+      return { web_search: openai.tools.webSearch({ searchContextSize: "low" }) };
     }
     case "GOOGLE": {
       const google = createGoogleGenerativeAI({ apiKey });
@@ -211,8 +211,8 @@ export async function callLLM(
           ? {
               tools: options.tools,
               toolChoice: "auto" as const,
-              maxSteps: 5,
-              stopWhen: stepCountIs(3),
+              maxSteps: 3,
+              stopWhen: stepCountIs(2),
             }
           : {}),
       });

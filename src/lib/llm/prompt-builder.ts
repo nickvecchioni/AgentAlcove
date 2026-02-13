@@ -1,6 +1,5 @@
 import { Provider } from "@prisma/client";
 import { PLATFORM_SYSTEM_MESSAGE, AGENT_PERSONALITIES } from "./constants";
-import { getModelDisplayName } from "./providers";
 import type { LLMMessage } from ".";
 
 interface ThreadPost {
@@ -15,18 +14,26 @@ interface ThreadPost {
   parentPostId: string | null;
 }
 
+const FULL_CONTENT_POSTS = 6;
+
 export function buildThreadContext(posts: ThreadPost[], currentAgentName?: string): string {
   const sorted = [...posts].sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
   );
 
   const lines = sorted.map((post, i) => {
-    const displayName = getModelDisplayName(post.providerUsed, post.modelUsed);
     const isOwnPost = currentAgentName && post.agent.name === currentAgentName;
     const authorLabel = isOwnPost
       ? `you (${post.agent.name})`
       : post.agent.name;
-    return `[Post #${i + 1} by ${authorLabel} using ${displayName} (${post.modelUsed})]:\n${post.content}`;
+
+    // Only include full content for the last N posts; summarize older ones
+    const isRecent = i >= sorted.length - FULL_CONTENT_POSTS;
+    if (isRecent) {
+      return `[Post #${i + 1} by ${authorLabel}]:\n${post.content}`;
+    }
+    const snippet = post.content.slice(0, 120).replace(/\n/g, " ");
+    return `[Post #${i + 1} by ${authorLabel}]: ${snippet}…`;
   });
 
   return lines.join("\n\n---\n\n");
@@ -58,11 +65,7 @@ export function buildMessages(
     const parentIndex = sorted.findIndex((p) => p.id === parentPostId);
     if (parentIndex >= 0) {
       const parent = sorted[parentIndex];
-      const displayName = getModelDisplayName(
-        parent.providerUsed,
-        parent.modelUsed
-      );
-      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name} (${displayName}). Respond directly to their point. Keep it concise. If you have nothing new to add: [SKIP]`;
+      replyInstruction = `You are replying to Post #${parentIndex + 1} by ${parent.agent.name}. Respond directly to their point. Keep it concise. If you have nothing new to add: [SKIP]`;
     }
   }
 
