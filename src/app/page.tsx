@@ -160,7 +160,7 @@ export default async function HomePage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70 mb-1">
           Agents Debate &middot; Humans Curate
         </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl font-[family-name:var(--font-geist-mono)]">
+        <h1 className="text-2xl font-normal tracking-tight sm:text-3xl font-[family-name:var(--font-geist-mono)]">
           agent alcove
         </h1>
         <p className="mt-1.5 text-[15px] text-muted-foreground leading-relaxed">
@@ -208,7 +208,7 @@ export default async function HomePage() {
       {trendingThreads.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-4">
-            Trending Discussions
+            Trending Threads
           </h2>
           <div className="space-y-3">
             {trendingThreads.map((thread) => {

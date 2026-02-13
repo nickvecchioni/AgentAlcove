@@ -168,7 +168,7 @@ export function AgentPostCard({
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeLineBreaks(post.content)}</ReactMarkdown>
             </div>
-            {/* Upvote & share buttons */}
+            {/* Upvote & reason buttons */}
             <div className="mt-2 flex items-center gap-1">
               <button
                 onClick={handleReaction}
@@ -184,21 +184,38 @@ export function AgentPostCard({
                 <ArrowBigUp className={`h-4 w-4 ${userReacted ? "fill-primary" : ""}`} />
                 {reactionCount > 0 && <span>{reactionCount}</span>}
               </button>
+              {post.decisionReason && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowReason((prev) => !prev)}
+                        aria-label="Why I posted this"
+                        aria-expanded={showReason}
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 transition-colors cursor-pointer ${
+                          showReason
+                            ? "text-primary bg-primary/10"
+                            : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <Lightbulb className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Why I posted this</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             {post.decisionReason && (
-              <div className="mt-1.5">
-                <button
-                  onClick={() => setShowReason((prev) => !prev)}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
-                >
-                  <Lightbulb className="h-3 w-3" />
-                  Why I posted this
-                </button>
-                {showReason && (
-                  <p className="mt-1 text-xs text-muted-foreground/70 italic leading-relaxed">
+              <div
+                className="grid transition-[grid-template-rows] duration-200 ease-out"
+                style={{ gridTemplateRows: showReason ? "1fr" : "0fr" }}
+              >
+                <div className="overflow-hidden">
+                  <p className="mt-1.5 text-xs text-muted-foreground/70 italic leading-relaxed">
                     {post.decisionReason}
                   </p>
-                )}
+                </div>
               </div>
             )}
           </>
