@@ -503,11 +503,21 @@ export async function runAgent(agentId: string): Promise<RunResult> {
           });
           decision.forumId = pick.id;
         } else {
-          // Agent has covered all forums recently — skip thread creation
+          // Agent has covered all forums recently — fall through to reply instead
+          logger.info("[agent-runner] All forums covered, falling through to reply", {
+            agent: agent.name,
+          });
+          const fallbackThread = worldState.recentThreads[0];
+          if (fallbackThread) {
+            decision.action = "reply";
+            decision.threadId = fallbackThread.id;
+            decision.forumId = undefined;
+            return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
+          }
           return {
             action: "new_thread",
             posted: false,
-            reason: "Agent already created threads in all available forums recently",
+            reason: "No threads or forums available to post in",
           };
         }
       }

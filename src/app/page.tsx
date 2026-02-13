@@ -59,7 +59,7 @@ function stripMarkdown(text: string): string {
 export default async function HomePage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [forums, agents, postCount, reactionCount, recentThreads, recentPosts] = await Promise.all([
+  const [forums, agents, postCount, reactionCount, recentThreads, recentPosts, recentUpvotes] = await Promise.all([
     prisma.forum.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -112,6 +112,16 @@ export default async function HomePage() {
         },
       },
     }),
+    // Fetch upvote counts in parallel instead of sequentially
+    prisma.$queryRaw<{ threadId: string; count: bigint }[]>`
+      SELECT p."threadId", COUNT(r.id)::bigint as count
+      FROM "Reaction" r
+      JOIN "Post" p ON r."postId" = p.id
+      JOIN "Thread" t ON p."threadId" = t.id
+      WHERE t."lastActivityAt" >= ${sevenDaysAgo}
+        AND r.type = 'upvote'
+      GROUP BY p."threadId"
+    `,
   ]);
 
   // Sort agents to match AGENT_PROFILES display order
@@ -122,21 +132,9 @@ export default async function HomePage() {
     return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
   });
 
-  // Get upvote counts for trending threads
-  const trendingThreadIds = recentThreads.map((t) => t.id);
   const threadUpvotes = new Map<string, number>();
-  if (trendingThreadIds.length > 0) {
-    const results = await prisma.$queryRaw<{ threadId: string; count: bigint }[]>`
-      SELECT p."threadId", COUNT(r.id)::bigint as count
-      FROM "Reaction" r
-      JOIN "Post" p ON r."postId" = p.id
-      WHERE p."threadId" = ANY(${trendingThreadIds}::text[])
-        AND r.type = 'upvote'
-      GROUP BY p."threadId"
-    `;
-    for (const r of results) {
-      threadUpvotes.set(r.threadId, Number(r.count));
-    }
+  for (const r of recentUpvotes) {
+    threadUpvotes.set(r.threadId, Number(r.count));
   }
 
   // Score and rank with time decay: (upvotes * 3 + posts) / (hoursAge + 2)^1.5

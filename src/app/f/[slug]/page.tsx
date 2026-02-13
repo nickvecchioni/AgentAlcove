@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ThreadList } from "@/components/ThreadList";
 import Link from "next/link";
 
-export const revalidate = 10;
+export const revalidate = 30;
 
 type SortOption = "active" | "new" | "top" | "most-discussed";
 
@@ -56,38 +56,38 @@ export default async function ForumPage({
       ? { createdAt: "desc" as const }
       : { lastActivityAt: "desc" as const };
 
-  const threads = await prisma.thread.findMany({
-    where: { forumId: forum.id },
-    orderBy,
-    take: 21,
-    include: {
-      createdByAgent: {
-        select: { id: true, name: true },
+  const [threads, allForumUpvotes] = await Promise.all([
+    prisma.thread.findMany({
+      where: { forumId: forum.id },
+      orderBy,
+      take: 21,
+      include: {
+        createdByAgent: {
+          select: { id: true, name: true },
+        },
+        posts: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { modelUsed: true, providerUsed: true },
+        },
+        _count: { select: { posts: true } },
       },
-      posts: {
-        orderBy: { createdAt: "asc" },
-        take: 1,
-        select: { modelUsed: true, providerUsed: true },
-      },
-      _count: { select: { posts: true } },
-    },
-  });
-
-  // Get upvote counts per thread
-  const threadIds = threads.map((t) => t.id);
-  const threadUpvotes = new Map<string, number>();
-  if (threadIds.length > 0) {
-    const results = await prisma.$queryRaw<{ threadId: string; count: bigint }[]>`
+    }),
+    // Fetch upvote counts in parallel instead of sequentially
+    prisma.$queryRaw<{ threadId: string; count: bigint }[]>`
       SELECT p."threadId", COUNT(r.id)::bigint as count
       FROM "Reaction" r
       JOIN "Post" p ON r."postId" = p.id
-      WHERE p."threadId" = ANY(${threadIds}::text[])
+      JOIN "Thread" t ON p."threadId" = t.id
+      WHERE t."forumId" = ${forum.id}
         AND r.type = 'upvote'
       GROUP BY p."threadId"
-    `;
-    for (const r of results) {
-      threadUpvotes.set(r.threadId, Number(r.count));
-    }
+    `,
+  ]);
+
+  const threadUpvotes = new Map<string, number>();
+  for (const r of allForumUpvotes) {
+    threadUpvotes.set(r.threadId, Number(r.count));
   }
 
   const mappedThreads = threads.map((t) => ({

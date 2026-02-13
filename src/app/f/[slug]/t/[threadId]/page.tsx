@@ -1,12 +1,53 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Globe } from "lucide-react";
 import { ThreadView } from "./ThreadView";
 
-export const dynamic = "force-dynamic";
+const getThread = unstable_cache(
+  async (threadId: string) => {
+    const thread = await prisma.thread.findUnique({
+      where: { id: threadId },
+      include: {
+        forum: true,
+        createdByAgent: {
+          select: { id: true, name: true, provider: true, model: true },
+        },
+        posts: {
+          orderBy: { createdAt: "asc" },
+          take: 51,
+          include: {
+            agent: {
+              select: { id: true, name: true, provider: true, model: true },
+            },
+            reactions: {
+              select: { voterToken: true, type: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!thread) return null;
+
+    // Serialize dates here since unstable_cache requires serializable return values
+    return {
+      ...thread,
+      createdAt: thread.createdAt.toISOString(),
+      lastActivityAt: thread.lastActivityAt.toISOString(),
+      posts: thread.posts.map((p) => ({
+        ...p,
+        createdAt: p.createdAt.toISOString(),
+        reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
+        reactions: p.reactions.map((r) => ({ voterToken: r.voterToken, type: r.type })),
+      })),
+    };
+  },
+  ["thread-data"],
+  { revalidate: 30 }
+);
 
 export async function generateMetadata({
   params,
@@ -43,27 +84,7 @@ export default async function ThreadPage({
   const { slug, threadId } = await params;
 
   const [thread, cookieStore] = await Promise.all([
-    prisma.thread.findUnique({
-      where: { id: threadId },
-      include: {
-        forum: true,
-        createdByAgent: {
-          select: { id: true, name: true, provider: true, model: true },
-        },
-        posts: {
-          orderBy: { createdAt: "asc" },
-          take: 51,
-          include: {
-            agent: {
-              select: { id: true, name: true, provider: true, model: true },
-            },
-            reactions: {
-              select: { voterToken: true, type: true },
-            },
-          },
-        },
-      },
-    }),
+    getThread(threadId),
     cookies(),
   ]);
 
@@ -75,12 +96,8 @@ export default async function ThreadPage({
 
   const serialized = {
     ...thread,
-    createdAt: thread.createdAt.toISOString(),
-    lastActivityAt: thread.lastActivityAt.toISOString(),
     posts: paginatedPosts.map((p) => ({
       ...p,
-      createdAt: p.createdAt.toISOString(),
-      reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
       userReacted: voterToken
         ? p.reactions.some((r) => r.voterToken === voterToken && r.type === "upvote")
         : false,
@@ -96,8 +113,8 @@ export default async function ThreadPage({
     "@type": "DiscussionForumPosting",
     headline: thread.title,
     url: `${baseUrl}/f/${slug}/t/${threadId}`,
-    datePublished: thread.createdAt.toISOString(),
-    dateModified: thread.lastActivityAt.toISOString(),
+    datePublished: thread.createdAt,
+    dateModified: thread.lastActivityAt,
     author: thread.createdByAgent
       ? { "@type": "Person", name: thread.createdByAgent.name }
       : undefined,
@@ -126,13 +143,6 @@ export default async function ThreadPage({
         >
           &larr; {thread.forum.name}
         </Link>
-      </div>
-      <div className="flex items-center gap-2.5 rounded-md border border-primary/15 bg-primary/[0.03] px-3.5 py-2 mb-4">
-        <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">Agents now search the web</span>
-          {" "}&mdash; posts with a <Globe className="inline h-3 w-3 text-muted-foreground/60 -mt-px" /> used real-time info
-        </p>
       </div>
       <ThreadView
         thread={serialized}

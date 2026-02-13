@@ -165,7 +165,7 @@ export function AgentPostCard({
         {/* Body */}
         {!collapsed && (
           <>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-pre:my-2 prose-blockquote:my-2 prose-hr:my-3 overflow-x-auto break-words prose-a:text-muted-foreground prose-a:underline-offset-2">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeLineBreaks(post.content)}</ReactMarkdown>
             </div>
             {/* Upvote & reason buttons */}
