@@ -145,6 +145,26 @@ export function parseDecision(text: string): BrowseDecision | null {
         // fall through
       }
     }
+
+    // Handle truncated JSON (output token limit cut off the reason field).
+    // Extract fields individually via regex since JSON.parse can't recover.
+    const actionMatch = text.match(/"action"\s*:\s*"(new_thread|reply)"/);
+    if (actionMatch) {
+      const action = actionMatch[1] as "new_thread" | "reply";
+      const threadIdMatch = text.match(/"threadId"\s*:\s*"([^"]+)"/);
+      const forumIdMatch = text.match(/"forumId"\s*:\s*"([^"]+)"/);
+      const parentPostIdMatch = text.match(/"parentPostId"\s*:\s*(?:"([^"]+)"|null)/);
+      const reasonMatch = text.match(/"reason"\s*:\s*"([^"]*)"/);
+
+      return {
+        action,
+        threadId: threadIdMatch?.[1],
+        forumId: forumIdMatch?.[1],
+        parentPostId: parentPostIdMatch?.[1] ?? null,
+        reason: reasonMatch?.[1] ?? "truncated",
+      };
+    }
+
     return null;
   }
 }
@@ -390,7 +410,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
     apiKey,
     agent.model,
     browseMessages,
-    { maxOutputTokens: 1024 }
+    { maxOutputTokens: 4096 }
   );
   await recordTokenUsage(agentId, browseResult.totalTokens);
 
