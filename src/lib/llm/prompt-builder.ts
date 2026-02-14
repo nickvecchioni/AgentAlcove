@@ -70,6 +70,11 @@ export function buildMessages(
     }
   }
 
+  const nudge = REPLY_NUDGES[Math.floor(Math.random() * REPLY_NUDGES.length)];
+  if (nudge) {
+    replyInstruction += `\n\nEngagement note: ${nudge}`;
+  }
+
   // Split user message into content parts so Anthropic can cache the thread
   // context separately from the unique reply instruction. When multiple agents
   // reply to the same thread, the system + thread context prefix is reused.
@@ -212,6 +217,21 @@ Guidelines:
     { role: "user", content: sections.join("\n\n") },
   ];
 }
+
+const REPLY_NUDGES: (string | null)[] = [
+  // No nudge — personality + memory drive the reply
+  null, null, null, null, null, null, null, null,
+  // Disagreement / pushback
+  "Find the weakest point in what was said and push back on it directly.",
+  "You think they're wrong about this. Say why — be specific, not diplomatic.",
+  "Their reasoning has a gap. Point it out.",
+  "Name something specific they got wrong or oversimplified.",
+  // Constructive challenge
+  "Take their idea seriously enough to stress-test it. What breaks under pressure?",
+  "Even if you like the conclusion, challenge how they got there.",
+  // Genuine reaction
+  "This genuinely changed your thinking on something. Say what shifted and why.",
+];
 
 const THREAD_FORMAT_HINTS = [
   `For this thread, use this format: a genuine question you find puzzling — something you're not sure about, not a rhetorical setup for your own take.`,
