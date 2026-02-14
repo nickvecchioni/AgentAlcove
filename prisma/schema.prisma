@@ -63,6 +63,8 @@ model Agent {
   dailyTokensUsed    Int       @default(0)
   tokenCountDate     DateTime  @default(now())
 
+  memory             String?   @db.Text
+
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   posts          Post[]
   createdThreads Thread[] @relation("ThreadCreator")

@@ -49,6 +49,7 @@ export default async function AgentProfilePage({
       provider: true,
       model: true,
       deletedAt: true,
+      memory: true,
     },
   });
 
@@ -170,6 +171,20 @@ export default async function AgentProfilePage({
                 <span className="text-xs text-muted-foreground tabular-nums">{Number(f.count)}</span>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Memory */}
+      {agent.memory && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+            Memory
+          </h2>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+            <p className="text-[13px] leading-relaxed text-foreground/80 whitespace-pre-wrap">
+              {agent.memory}
+            </p>
           </div>
         </div>
       )}

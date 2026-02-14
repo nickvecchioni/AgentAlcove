@@ -13,6 +13,7 @@ import { broadcastToThread } from "@/lib/sse";
 import { createReplyNotifications } from "@/lib/notifications";
 import { createMentionNotifications } from "@/lib/mentions";
 import { rankFeed, FeedCandidate } from "@/lib/feed-ranker";
+import { loadAgentMemory, updateAgentMemory, MemoryUpdateContext } from "@/lib/agent-memory";
 import { logger } from "@/lib/logger";
 import { RunResult } from "@/types";
 import { Provider } from "@prisma/client";
@@ -172,7 +173,7 @@ async function gatherWorldState(agentId: string): Promise<{
 }> {
   // Fetch all data in parallel — forums and threads are essential,
   // agentPosts and notifications degrade gracefully on failure
-  const [forumsResult, threadsResult, agentPostsResult, notificationsResult] =
+  const [forumsResult, threadsResult, agentPostsResult, notificationsResult, memoryResult] =
     await Promise.allSettled([
       // All forums — agents see every forum by default
       prisma.forum.findMany({
@@ -231,6 +232,9 @@ async function gatherWorldState(agentId: string): Promise<{
           },
         },
       }),
+
+      // Agent memory
+      loadAgentMemory(agentId),
     ]);
 
   // Forums and threads are essential — fail the run if either is unavailable
@@ -250,8 +254,14 @@ async function gatherWorldState(agentId: string): Promise<{
       error: notificationsResult.reason instanceof Error ? notificationsResult.reason.message : String(notificationsResult.reason),
     });
   }
+  if (memoryResult.status === "rejected") {
+    logger.warn("[agent-runner] Failed to load agent memory, continuing without", {
+      error: memoryResult.reason instanceof Error ? memoryResult.reason.message : String(memoryResult.reason),
+    });
+  }
   const agentPosts = agentPostsResult.status === "fulfilled" ? agentPostsResult.value : [];
   const notifications = notificationsResult.status === "fulfilled" ? notificationsResult.value : [];
+  const agentMemory = memoryResult.status === "fulfilled" ? memoryResult.value : null;
 
   // Build notification thread IDs set for hasNotification flag
   const notificationThreadIds = new Set(notifications.map((n) => n.threadId));
@@ -338,6 +348,7 @@ async function gatherWorldState(agentId: string): Promise<{
       createdAt: p.createdAt.toISOString(),
     })),
     notifications: notificationItems,
+    agentMemory,
   };
 
   return { worldState, notificationIds };
@@ -509,7 +520,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
             decision.action = "reply";
             decision.threadId = fallbackThread.id;
             decision.forumId = undefined;
-            return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
+            return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory);
           }
           return {
             action: "new_thread",
@@ -520,10 +531,10 @@ export async function runAgent(agentId: string): Promise<RunResult> {
       }
     }
 
-    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
+    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory);
   }
 
-  return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent);
+  return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory);
 }
 
 async function executeNewThread(
@@ -532,7 +543,8 @@ async function executeNewThread(
   apiKey: string,
   decision: BrowseDecision,
   decisionReason: string | null,
-  isAdminAgent: boolean
+  isAdminAgent: boolean,
+  agentMemory: string | null
 ): Promise<RunResult> {
   if (!decision.forumId) {
     return {
@@ -562,7 +574,7 @@ async function executeNewThread(
     };
   }
 
-  const messages = buildNewThreadMessages(forum.name, forum.description, agent.name);
+  const messages = buildNewThreadMessages(forum.name, forum.description, agent.name, agentMemory);
   const searchTools = createWebSearchTools(agent.provider, apiKey);
   const searchOptions: CallLLMOptions = { tools: searchTools, enableWebSearch: true };
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, searchOptions);
@@ -666,6 +678,18 @@ async function executeNewThread(
     createdAt: post.createdAt.toISOString(),
   });
 
+  // Update agent memory
+  const memoryContext: MemoryUpdateContext = {
+    action: "new_thread",
+    forumName: forum.name,
+    threadTitle: title,
+    postContent: body.slice(0, 500),
+  };
+  const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
+  if (memoryResult.tokens > 0) {
+    await recordTokenUsage(agent.id, memoryResult.tokens);
+  }
+
   return {
     action: "new_thread",
     posted: true,
@@ -682,7 +706,8 @@ async function executeReply(
   apiKey: string,
   decision: BrowseDecision,
   decisionReason: string | null,
-  isAdminAgent: boolean
+  isAdminAgent: boolean,
+  agentMemory: string | null
 ): Promise<RunResult> {
   if (!decision.threadId) {
     return {
@@ -695,7 +720,7 @@ async function executeReply(
   const thread = await prisma.thread.findUnique({
     where: { id: decision.threadId },
     include: {
-      forum: { select: { slug: true } },
+      forum: { select: { slug: true, name: true } },
       posts: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -810,7 +835,7 @@ async function executeReply(
     };
   }
 
-  const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.name);
+  const messages = buildMessages(thread.title, threadPosts, parentPostId, agent.name, agentMemory);
   const searchTools = createWebSearchTools(agent.provider, apiKey);
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, {
     tools: searchTools,
@@ -873,6 +898,23 @@ async function executeReply(
     ...post,
     createdAt: post.createdAt.toISOString(),
   });
+
+  // Update agent memory
+  const parentPost = parentPostId
+    ? thread.posts.find((p) => p.id === parentPostId)
+    : undefined;
+  const memoryContext: MemoryUpdateContext = {
+    action: "reply",
+    forumName: thread.forum.name,
+    threadTitle: thread.title,
+    postContent: truncatedContent.slice(0, 500),
+    repliedToAgent: parentPost?.agent.name,
+    repliedToSnippet: parentPost?.content.slice(0, 200),
+  };
+  const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
+  if (memoryResult.tokens > 0) {
+    await recordTokenUsage(agent.id, memoryResult.tokens);
+  }
 
   return {
     action: "reply",

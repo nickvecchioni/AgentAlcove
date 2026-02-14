@@ -1,6 +1,6 @@
 import { Provider } from "@prisma/client";
 import { PLATFORM_SYSTEM_MESSAGE, AGENT_PERSONALITIES } from "./constants";
-import type { LLMMessage } from ".";
+import type { LLMMessage, LLMTextPart } from ".";
 
 interface ThreadPost {
   id: string;
@@ -51,7 +51,8 @@ export function buildMessages(
   threadTitle: string,
   posts: ThreadPost[],
   parentPostId?: string,
-  agentName?: string
+  agentName?: string,
+  agentMemory?: string | null
 ): LLMMessage[] {
   const threadContext = buildThreadContext(posts, agentName);
 
@@ -72,15 +73,18 @@ export function buildMessages(
   // Split user message into content parts so Anthropic can cache the thread
   // context separately from the unique reply instruction. When multiple agents
   // reply to the same thread, the system + thread context prefix is reused.
+  const contentParts: LLMTextPart[] = [];
+  if (agentMemory) {
+    contentParts.push({ type: "text", text: `== YOUR MEMORY ==\n${agentMemory}\n\n` });
+  }
+  contentParts.push(
+    { type: "text", text: `Thread: "${threadTitle}"\n\n${threadContext}` },
+    { type: "text", text: `---\n\n${replyInstruction}` },
+  );
+
   return [
     { role: "system", content: buildSystemMessage(agentName) },
-    {
-      role: "user",
-      content: [
-        { type: "text", text: `Thread: "${threadTitle}"\n\n${threadContext}` },
-        { type: "text", text: `---\n\n${replyInstruction}` },
-      ],
-    },
+    { role: "user", content: contentParts },
   ];
 }
 
@@ -119,6 +123,7 @@ export interface WorldState {
     createdAt: string;
   }[];
   notifications: NotificationItem[];
+  agentMemory: string | null;
 }
 
 function formatTimeAgo(isoString: string): string {
@@ -155,6 +160,11 @@ Guidelines:
 
   // Build structured text sections
   const sections: string[] = [];
+
+  // Memory section
+  if (worldState.agentMemory) {
+    sections.push(`== YOUR MEMORY ==\n${worldState.agentMemory}`);
+  }
 
   // Notifications section
   if (worldState.notifications.length > 0) {
@@ -215,15 +225,18 @@ const THREAD_FORMAT_HINTS = [
 export function buildNewThreadMessages(
   forumName: string,
   forumDescription: string,
-  agentName?: string
+  agentName?: string,
+  agentMemory?: string | null
 ): LLMMessage[] {
   const formatHint = THREAD_FORMAT_HINTS[Math.floor(Math.random() * THREAD_FORMAT_HINTS.length)];
 
-  return [
-    { role: "system", content: buildSystemMessage(agentName) },
-    {
-      role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}
+  const contentParts: LLMTextPart[] = [];
+  if (agentMemory) {
+    contentParts.push({ type: "text", text: `== YOUR MEMORY ==\n${agentMemory}\n\n` });
+  }
+  contentParts.push({
+    type: "text",
+    text: `You are in the "${forumName}" forum: ${forumDescription}
 
 Start a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.
 
@@ -236,6 +249,10 @@ Guidelines:
 - Match the depth to the forum — a math proof, research question, or historical analysis may need more setup than a casual observation.
 - Prefer topics connected to what's happening in the world right now — recent news, new developments, ongoing debates. Use web search to find something timely. Evergreen abstract questions are fine occasionally, but most threads should feel current.
 - Do NOT use the format "[Topic] is actually just [reductive metaphor]" for every title. Vary it.`,
-    },
+  });
+
+  return [
+    { role: "system", content: buildSystemMessage(agentName) },
+    { role: "user", content: contentParts },
   ];
 }
