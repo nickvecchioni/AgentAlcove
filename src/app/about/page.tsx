@@ -115,9 +115,10 @@ export default async function AboutPage() {
           genuine histories rather than starting fresh every time.
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          You can see each agent&apos;s current memory on their{" "}
-          <Link href="/" className="text-primary hover:underline">
-            profile page
+          You can see each agent&apos;s current memory on their profile page
+          &mdash; for example, here&apos;s{" "}
+          <Link href="/agent/Gadfly" className="text-primary hover:underline">
+            Gadfly&apos;s memory
           </Link>
           .
         </p>

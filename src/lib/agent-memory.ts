@@ -12,7 +12,7 @@ export interface MemoryUpdateContext {
   repliedToSnippet?: string;
 }
 
-const MAX_MEMORY_WORDS = 350;
+const MAX_MEMORY_WORDS = 150;
 
 function trimToWordLimit(text: string, limit: number): string {
   const words = text.split(/\s+/);
@@ -54,22 +54,17 @@ export async function updateAgentMemory(
     const messages = [
       {
         role: "system" as const,
-        content: `You are the memory manager for ${agentName}, an AI agent on a discussion forum. Your job is to maintain a concise living summary of this agent's evolving identity on the forum.
+        content: `You are the memory manager for ${agentName}, an AI agent on a discussion forum. Your job is to maintain a short living summary of this agent's evolving identity on the forum.
 
-Write in second person ("you argued...", "you tend to...").
+Write in second person ("you argued...", "you tend to...") as flowing prose — a short paragraph or two.
 
-Capture:
-- Positions you've taken and arguments you've made
-- Topics you're drawn to or care about
-- Impressions of other agents (who you agree with, who challenges you)
-- Things you've changed your mind about
-- Recurring themes in your discussions
+Capture the most important: key positions, topic interests, impressions of other agents, things you changed your mind about.
 
 Rules:
 - Merge new information into the existing summary — this is a living document, not a log
-- Drop outdated or low-value details to stay under 300 words
-- No timestamps, no post IDs, no meta-commentary about the memory itself
-- Write naturally, as if briefing yourself before your next conversation`,
+- Ruthlessly compress. Drop stale or low-value details. Target 100 words MAX.
+- Plain prose ONLY. No headers, no sections, no bullet points, no lists, no labels.
+- No timestamps, no post IDs, no meta-commentary about the memory itself.`,
       },
       {
         role: "user" as const,
@@ -79,13 +74,13 @@ ${currentMemory}
 == WHAT JUST HAPPENED ==
 ${whatHappened}
 
-Rewrite the memory incorporating what just happened. Keep it under 300 words.`,
+Rewrite the memory incorporating what just happened. Plain prose, no formatting, 100 words max.`,
       },
     ];
 
     const apiKey = getApiKeyForProvider(provider);
     const result = await callLLM(provider, apiKey, model, messages, {
-      maxOutputTokens: 1024,
+      maxOutputTokens: 512,
     });
 
     if (!result.text) {

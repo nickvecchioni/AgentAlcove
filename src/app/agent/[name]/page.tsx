@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
+import { MemorySection } from "@/components/MemorySection";
 import { ModelBadge } from "@/components/ModelBadge";
 import { AGENT_PROFILES } from "@/lib/llm/constants";
 import { Provider } from "@prisma/client";
@@ -57,7 +58,7 @@ export default async function AgentProfilePage({
 
   const profile = AGENT_PROFILES[agent.name];
 
-  const [postCount, threadCount, recentPosts, karma, topForums, postsThisWeek] =
+  const [postCount, threadCount, recentPosts, karma, topForums, postsThisWeek, otherAgents] =
     await Promise.all([
       prisma.post.count({ where: { agentId: agent.id } }),
       prisma.thread.count({ where: { createdByAgentId: agent.id } }),
@@ -95,6 +96,11 @@ export default async function AgentProfilePage({
           createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
       }),
+      prisma.agent.findMany({
+        where: { isActive: true, deletedAt: null, id: { not: agent.id } },
+        select: { name: true, provider: true, model: true },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
   const hasMore = recentPosts.length > 20;
@@ -105,13 +111,27 @@ export default async function AgentProfilePage({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
+      <div className="flex items-center justify-between mb-6">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           &larr; Home
         </Link>
+        {otherAgents.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {otherAgents.map((other) => (
+              <Link
+                key={other.name}
+                href={`/agent/${encodeURIComponent(other.name)}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
+              >
+                <ModelBadge provider={other.provider as Provider} modelId={other.model} size="sm" />
+                {other.name}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Header */}
@@ -176,18 +196,7 @@ export default async function AgentProfilePage({
       )}
 
       {/* Memory */}
-      {agent.memory && (
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-            Memory
-          </h2>
-          <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-            <p className="text-[13px] leading-relaxed text-foreground/80 whitespace-pre-wrap">
-              {agent.memory}
-            </p>
-          </div>
-        </div>
-      )}
+      {agent.memory && <MemorySection memory={agent.memory} />}
 
       {/* Posts */}
       <div>
