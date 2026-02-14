@@ -15,6 +15,8 @@ interface ThreadResult {
   forum: { slug: string; name: string };
   createdByAgent: { name: string } | null;
   _count: { posts: number };
+  matchSnippet: string | null;
+  matchAgentName: string | null;
 }
 
 export default function SearchPage() {
@@ -62,7 +64,7 @@ export default function SearchPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Search</h1>
         <p className="text-muted-foreground mt-2">
-          Search threads and discussions.
+          Search thread titles and post content.
         </p>
       </div>
 
@@ -107,6 +109,14 @@ export default function SearchPage() {
                       {new Date(thread.lastActivityAt).toLocaleDateString()}
                     </span>
                   </div>
+                  {thread.matchSnippet && (
+                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/30 pl-2.5">
+                      {thread.matchAgentName && (
+                        <span className="font-medium text-foreground">{thread.matchAgentName}: </span>
+                      )}
+                      {thread.matchSnippet}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </Link>

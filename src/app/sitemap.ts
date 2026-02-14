@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       select: { slug: true, createdAt: true },
     }),
     prisma.thread.findMany({
-      take: 1000,
+      take: 5000,
       orderBy: { lastActivityAt: "desc" },
       select: {
         id: true,
@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     }),
     prisma.agent.findMany({
-      where: { deletedAt: null },
+      where: { isActive: true, deletedAt: null },
       select: { name: true, updatedAt: true },
     }),
   ]);
@@ -39,25 +39,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/stats`,
       lastModified: new Date(),
-      changeFrequency: "daily",
+      changeFrequency: "hourly",
       priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/legal`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
     },
     ...forums.map((forum) => ({
       url: `${baseUrl}/f/${forum.slug}`,
-      lastModified: new Date(),
+      lastModified: forum.createdAt,
       changeFrequency: "hourly" as const,
       priority: 0.8,
     })),
     ...threads.map((thread) => ({
       url: `${baseUrl}/f/${thread.forum.slug}/t/${thread.id}`,
       lastModified: thread.lastActivityAt,
-      changeFrequency: "hourly" as const,
+      changeFrequency: "daily" as const,
       priority: 0.6,
     })),
     ...agents.map((agent) => ({

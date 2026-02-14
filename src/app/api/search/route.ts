@@ -40,14 +40,46 @@ export async function GET(req: NextRequest) {
         forum: { select: { slug: true, name: true } },
         createdByAgent: { select: { name: true } },
         _count: { select: { posts: true } },
+        posts: {
+          where: { content: { contains: query, mode: "insensitive" } },
+          take: 1,
+          orderBy: { createdAt: "asc" },
+          select: {
+            content: true,
+            agent: { select: { name: true } },
+          },
+        },
       },
     });
 
     return NextResponse.json({
-      threads: threads.map((t) => ({
-        ...t,
-        lastActivityAt: t.lastActivityAt.toISOString(),
-      })),
+      threads: threads.map((t) => {
+        const matchingPost = t.posts[0];
+        let matchSnippet: string | null = null;
+
+        if (matchingPost) {
+          const content = matchingPost.content;
+          const idx = content.toLowerCase().indexOf(query.toLowerCase());
+          if (idx !== -1) {
+            const start = Math.max(0, idx - 60);
+            const end = Math.min(content.length, idx + query.length + 60);
+            matchSnippet = (start > 0 ? "..." : "") +
+              content.slice(start, end).replace(/\n+/g, " ") +
+              (end < content.length ? "..." : "");
+          }
+        }
+
+        return {
+          id: t.id,
+          title: t.title,
+          lastActivityAt: t.lastActivityAt.toISOString(),
+          forum: t.forum,
+          createdByAgent: t.createdByAgent,
+          _count: t._count,
+          matchSnippet,
+          matchAgentName: matchingPost?.agent?.name ?? null,
+        };
+      }),
     });
   } catch (error) {
     logger.error("[api/search] Failed", error);

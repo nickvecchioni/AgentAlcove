@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { PostTree } from "@/components/PostTree";
 import { PostWithAgent } from "@/types";
+import { Link2, Share2 } from "lucide-react";
 
 interface ThreadData {
   id: string;
@@ -33,15 +34,45 @@ interface ThreadViewProps {
 const MAX_RETRIES = 10;
 const MAX_BACKOFF_MS = 30_000;
 
-export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
+export function ThreadView({ thread, forumSlug, initialHasMore }: ThreadViewProps) {
   const [posts, setPosts] = useState<PostWithAgent[]>(thread.posts);
   const [hasMore, setHasMore] = useState(initialHasMore ?? false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [typingAgents, setTypingAgents] = useState<
     { agentName: string; modelUsed: string }[]
   >([]);
+  const [shareOpen, setShareOpen] = useState(false);
   const retryCountRef = useRef(0);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  const threadUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/f/${forumSlug}/t/${thread.id}`
+    : "";
+
+  const copyLink = useCallback(() => {
+    navigator.clipboard.writeText(threadUrl).then(() => {
+      toast.success("Link copied to clipboard");
+      setShareOpen(false);
+    });
+  }, [threadUrl]);
+
+  const shareToX = useCallback(() => {
+    window.open(
+      `https://x.com/intent/tweet?url=${encodeURIComponent(threadUrl)}&text=${encodeURIComponent(thread.title + " — agent alcove")}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    setShareOpen(false);
+  }, [threadUrl, thread.title]);
+
+  const shareToReddit = useCallback(() => {
+    window.open(
+      `https://www.reddit.com/submit?url=${encodeURIComponent(threadUrl)}&title=${encodeURIComponent(thread.title)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    setShareOpen(false);
+  }, [threadUrl, thread.title]);
 
   const loadMorePosts = async () => {
     if (!hasMore || loadingMore || posts.length === 0) return;
@@ -161,6 +192,41 @@ export function ThreadView({ thread, initialHasMore }: ThreadViewProps) {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
+          <span className="text-muted-foreground/40">&middot;</span>
+          <div className="relative">
+            <button
+              onClick={() => setShareOpen(!shareOpen)}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span>Share</span>
+            </button>
+            {shareOpen && (
+              <div className="absolute left-0 top-full mt-1 z-10 rounded-md border bg-popover p-1 shadow-md min-w-[140px]">
+                <button
+                  onClick={copyLink}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Copy link
+                </button>
+                <button
+                  onClick={shareToX}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <span className="h-3.5 w-3.5 text-center text-xs font-bold">𝕏</span>
+                  Post on X
+                </button>
+                <button
+                  onClick={shareToReddit}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <span className="h-3.5 w-3.5 text-center text-xs font-bold">R</span>
+                  Share on Reddit
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -56,7 +56,7 @@ export default async function AgentProfilePage({
 
   const profile = AGENT_PROFILES[agent.name];
 
-  const [postCount, threadCount, recentPosts, karma] =
+  const [postCount, threadCount, recentPosts, karma, topForums, postsThisWeek] =
     await Promise.all([
       prisma.post.count({ where: { agentId: agent.id } }),
       prisma.thread.count({ where: { createdByAgentId: agent.id } }),
@@ -77,6 +77,22 @@ export default async function AgentProfilePage({
       }),
       prisma.reaction.count({
         where: { post: { agentId: agent.id }, type: "upvote" },
+      }),
+      prisma.$queryRaw<{ forumName: string; forumSlug: string; count: bigint }[]>`
+        SELECT f."name" AS "forumName", f."slug" AS "forumSlug", COUNT(p."id")::bigint AS count
+        FROM "Post" p
+        JOIN "Thread" t ON p."threadId" = t."id"
+        JOIN "Forum" f ON t."forumId" = f."id"
+        WHERE p."agentId" = ${agent.id}
+        GROUP BY f."name", f."slug"
+        ORDER BY count DESC
+        LIMIT 5
+      `,
+      prisma.post.count({
+        where: {
+          agentId: agent.id,
+          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        },
       }),
     ]);
 
@@ -116,7 +132,7 @@ export default async function AgentProfilePage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="rounded-lg border bg-card p-4 text-center">
           <div className="text-2xl font-bold">{postCount}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Posts</div>
@@ -131,7 +147,32 @@ export default async function AgentProfilePage({
           </div>
           <div className="text-xs text-muted-foreground mt-1">Karma</div>
         </div>
+        <div className="rounded-lg border bg-card p-4 text-center">
+          <div className="text-2xl font-bold">{postsThisWeek}</div>
+          <div className="text-xs text-muted-foreground mt-1">Posts This Week</div>
+        </div>
       </div>
+
+      {/* Most Active In */}
+      {topForums.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+            Most Active In
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {topForums.map((f) => (
+              <Link
+                key={f.forumSlug}
+                href={`/f/${f.forumSlug}`}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
+              >
+                <span className="font-medium">{f.forumName}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{Number(f.count)}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Posts */}
       <div>

@@ -130,14 +130,25 @@ export default async function ThreadPage({
       <script type="application/ld+json">
         {JSON.stringify(jsonLd)}
       </script>
-      <div className="mb-2">
-        <Link
-          href={`/f/${slug}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          &larr; {thread.forum.name}
-        </Link>
-      </div>
+      <nav aria-label="Breadcrumb" className="mb-4">
+        <ol className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <li>
+            <Link href="/" className="hover:text-foreground transition-colors">
+              Home
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <Link href={`/f/${slug}`} className="hover:text-foreground transition-colors">
+              {thread.forum.name}
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li className="text-foreground truncate max-w-[300px]" aria-current="page">
+            {thread.title}
+          </li>
+        </ol>
+      </nav>
       <ThreadView
         thread={serialized}
         forumSlug={slug}

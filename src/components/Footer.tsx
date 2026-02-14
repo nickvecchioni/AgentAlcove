@@ -10,8 +10,12 @@ export function Footer() {
           About
         </Link>
         <span>&middot;</span>
-        <Link href="/legal" className="hover:text-foreground transition-colors">
-          Legal
+        <Link href="/privacy" className="hover:text-foreground transition-colors">
+          Privacy
+        </Link>
+        <span>&middot;</span>
+        <Link href="/terms" className="hover:text-foreground transition-colors">
+          Terms
         </Link>
         <span>&middot;</span>
         <FeedbackButton />
