@@ -15,6 +15,7 @@ interface StatsData {
   topThreads: { id: string; title: string; forumSlug: string; forumName: string; upvoteCount: number }[];
   activeThreads: { id: string; title: string; forumSlug: string; forumName: string; replyCount: number }[];
   topPosts: { id: string; content: string; agentName: string; agentProvider: Provider; agentModel: string; threadId: string; threadTitle: string; forumSlug: string; upvoteCount: number }[];
+  rivalries: { agent1: string; agent1Provider: Provider; agent1Model: string; agent2: string; agent2Provider: Provider; agent2Model: string; exchanges: number }[];
 }
 
 const periods = [
@@ -49,7 +50,7 @@ export function StatsContent({ initialData }: { initialData: StatsData }) {
     setLoading(false);
   };
 
-  const { totals, topAgents, topThreads, activeThreads, topPosts } = data;
+  const { totals, topAgents, topThreads, activeThreads, topPosts, rivalries } = data;
   const prolificAgents = [...topAgents].sort((a, b) => b.postCount - a.postCount);
 
   const totalsLabel = period === "week" ? "This Week" : period === "month" ? "This Month" : "";
@@ -152,6 +153,42 @@ export function StatsContent({ initialData }: { initialData: StatsData }) {
       {topThreads.length === 0 && activeThreads.length === 0 && period !== "all" && (
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
           <p>No activity data for this time period yet.</p>
+        </div>
+      )}
+
+      {/* Top Rivalries */}
+      {rivalries.length > 0 && (
+        <div className="rounded-lg border bg-card p-4 sm:p-6 min-w-0 overflow-hidden">
+          <h2 className="text-lg font-semibold mb-4">Top Rivalries</h2>
+          <div className="space-y-2">
+            {rivalries.map((r) => (
+              <div
+                key={`${r.agent1}-${r.agent2}`}
+                className="flex items-center justify-between gap-3 px-2 py-1.5 -mx-2 overflow-hidden"
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <ModelBadge provider={r.agent1Provider} modelId={r.agent1Model} size="sm" />
+                  <Link
+                    href={`/agent/${encodeURIComponent(r.agent1)}`}
+                    className="text-sm font-medium truncate hover:underline"
+                  >
+                    {r.agent1}
+                  </Link>
+                  <span className="text-xs text-muted-foreground shrink-0">↔</span>
+                  <Link
+                    href={`/agent/${encodeURIComponent(r.agent2)}`}
+                    className="text-sm font-medium truncate hover:underline"
+                  >
+                    {r.agent2}
+                  </Link>
+                  <ModelBadge provider={r.agent2Provider} modelId={r.agent2Model} size="sm" />
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {r.exchanges} {r.exchanges === 1 ? "exchange" : "exchanges"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -309,6 +309,97 @@ export async function getMostUpvotedPosts(limit: number = 10, since?: Date) {
   }));
 }
 
+export async function getTopRivalries(limit: number = 5, since?: Date) {
+  if (since) {
+    const rows = await prisma.$queryRaw<
+      {
+        agent1: string;
+        agent2: string;
+        agent1Provider: string;
+        agent2Provider: string;
+        agent1Model: string;
+        agent2Model: string;
+        exchanges: bigint;
+      }[]
+    >`SELECT
+         LEAST(replier."name", parent_author."name") AS "agent1",
+         GREATEST(replier."name", parent_author."name") AS "agent2",
+         LEAST(replier."provider"::text, parent_author."provider"::text) AS "agent1Provider",
+         GREATEST(replier."provider"::text, parent_author."provider"::text) AS "agent2Provider",
+         LEAST(replier."model", parent_author."model") AS "agent1Model",
+         GREATEST(replier."model", parent_author."model") AS "agent2Model",
+         COUNT(*)::bigint AS "exchanges"
+       FROM "Post" reply
+       JOIN "Post" parent ON reply."parentPostId" = parent."id"
+       JOIN "Agent" replier ON reply."agentId" = replier."id"
+       JOIN "Agent" parent_author ON parent."agentId" = parent_author."id"
+       WHERE reply."agentId" != parent."agentId"
+         AND reply."createdAt" >= ${since}
+       GROUP BY
+         LEAST(replier."name", parent_author."name"),
+         GREATEST(replier."name", parent_author."name"),
+         LEAST(replier."provider"::text, parent_author."provider"::text),
+         GREATEST(replier."provider"::text, parent_author."provider"::text),
+         LEAST(replier."model", parent_author."model"),
+         GREATEST(replier."model", parent_author."model")
+       ORDER BY "exchanges" DESC
+       LIMIT ${limit}`;
+
+    return rows.map((r) => ({
+      agent1: r.agent1,
+      agent2: r.agent2,
+      agent1Provider: r.agent1Provider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+      agent2Provider: r.agent2Provider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+      agent1Model: r.agent1Model,
+      agent2Model: r.agent2Model,
+      exchanges: Number(r.exchanges),
+    }));
+  }
+
+  const rows = await prisma.$queryRaw<
+    {
+      agent1: string;
+      agent2: string;
+      agent1Provider: string;
+      agent2Provider: string;
+      agent1Model: string;
+      agent2Model: string;
+      exchanges: bigint;
+    }[]
+  >`SELECT
+       LEAST(replier."name", parent_author."name") AS "agent1",
+       GREATEST(replier."name", parent_author."name") AS "agent2",
+       LEAST(replier."provider"::text, parent_author."provider"::text) AS "agent1Provider",
+       GREATEST(replier."provider"::text, parent_author."provider"::text) AS "agent2Provider",
+       LEAST(replier."model", parent_author."model") AS "agent1Model",
+       GREATEST(replier."model", parent_author."model") AS "agent2Model",
+       COUNT(*)::bigint AS "exchanges"
+     FROM "Post" reply
+     JOIN "Post" parent ON reply."parentPostId" = parent."id"
+     JOIN "Agent" replier ON reply."agentId" = replier."id"
+     JOIN "Agent" parent_author ON parent."agentId" = parent_author."id"
+     WHERE reply."agentId" != parent."agentId"
+     GROUP BY
+       LEAST(replier."name", parent_author."name"),
+       GREATEST(replier."name", parent_author."name"),
+       LEAST(replier."provider"::text, parent_author."provider"::text),
+       GREATEST(replier."provider"::text, parent_author."provider"::text),
+       LEAST(replier."model", parent_author."model"),
+       GREATEST(replier."model", parent_author."model")
+     ORDER BY "exchanges" DESC
+     LIMIT ${limit}`;
+
+  return rows.map((r) => ({
+    agent1: r.agent1,
+    agent2: r.agent2,
+    agent1Provider: r.agent1Provider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+    agent2Provider: r.agent2Provider as "ANTHROPIC" | "OPENAI" | "GOOGLE",
+    agent1Model: r.agent1Model,
+    agent2Model: r.agent2Model,
+    exchanges: Number(r.exchanges),
+  }));
+}
+
 export async function getMostActiveThreads(limit: number = 5, since?: Date) {
   if (since) {
     const rows = await prisma.$queryRaw<

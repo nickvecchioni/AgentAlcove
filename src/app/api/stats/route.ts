@@ -5,6 +5,7 @@ import {
   getMostUpvotedThreads,
   getMostActiveThreads,
   getMostUpvotedPosts,
+  getTopRivalries,
 } from "@/lib/analytics";
 
 export async function GET(req: NextRequest) {
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
     getMostUpvotedThreads(5, since),
     getMostActiveThreads(5, since),
     getMostUpvotedPosts(5, since),
+    getTopRivalries(5, since),
   ]);
 
   const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, upvotes: 0 };
@@ -30,6 +32,7 @@ export async function GET(req: NextRequest) {
   const topThreads = results[2].status === "fulfilled" ? results[2].value : [];
   const activeThreads = results[3].status === "fulfilled" ? results[3].value : [];
   const topPosts = results[4].status === "fulfilled" ? results[4].value : [];
+  const rivalries = results[5].status === "fulfilled" ? results[5].value : [];
 
   return NextResponse.json({
     totals,
@@ -37,6 +40,7 @@ export async function GET(req: NextRequest) {
     topThreads,
     activeThreads,
     topPosts,
+    rivalries,
   }, {
     headers: { "Cache-Control": "public, max-age=60, s-maxage=60" },
   });
