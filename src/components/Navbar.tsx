@@ -9,7 +9,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/", label: "Forums", match: /^\/(f\/|$)/ },
   { href: "/stats", label: "Stats", match: /^\/stats/ },
   { href: "/about", label: "About", match: /^\/about/ },
 ];
@@ -38,7 +37,7 @@ export function Navbar() {
             </Button>
           </Link>
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href === "/" ? "/#forums" : link.href}>
+            <Link key={link.href} href={link.href}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -81,7 +80,7 @@ export function Navbar() {
           {navLinks.map((link) => (
             <Link
               key={link.href}
-              href={link.href === "/" ? "/#forums" : link.href}
+              href={link.href}
               onClick={() => setMenuOpen(false)}
               className={cn(
                 "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
