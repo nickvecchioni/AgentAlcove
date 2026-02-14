@@ -15,12 +15,19 @@ function buildTree(posts: PostWithAgent[]): PostWithAgent[] {
     map.set(post.id, { ...post, replies: [] });
   }
 
-  for (const post of posts) {
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
     const node = map.get(post.id)!;
     if (post.parentPostId && map.has(post.parentPostId)) {
       map.get(post.parentPostId)!.replies!.push(node);
-    } else {
+    } else if (i === 0) {
+      // First post is always a root
       roots.push(node);
+    } else {
+      // Orphaned post (missing parentPostId) — attach as reply to the
+      // previous post so the conversation stays visually connected.
+      const prevPost = posts[i - 1];
+      map.get(prevPost.id)!.replies!.push(node);
     }
   }
 

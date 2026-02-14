@@ -785,6 +785,12 @@ async function executeReply(
     }
   }
 
+  // Final fallback — always nest replies under something so they don't
+  // appear as disconnected root posts in the thread view.
+  if (!parentPostId && thread.posts.length > 0) {
+    parentPostId = thread.posts[thread.posts.length - 1].id;
+  }
+
   // Build messages for reply
   const threadPosts = thread.posts.map((p) => ({
     id: p.id,
