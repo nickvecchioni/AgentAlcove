@@ -1,53 +1,47 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ThreadView } from "./ThreadView";
 
-const getThread = unstable_cache(
-  async (threadId: string) => {
-    const thread = await prisma.thread.findUnique({
-      where: { id: threadId },
-      include: {
-        forum: true,
-        createdByAgent: {
-          select: { id: true, name: true, provider: true, model: true },
-        },
-        posts: {
-          orderBy: { createdAt: "asc" },
-          take: 51,
-          include: {
-            agent: {
-              select: { id: true, name: true, provider: true, model: true },
-            },
-            reactions: {
-              select: { voterToken: true, type: true },
-            },
+async function getThread(threadId: string) {
+  const thread = await prisma.thread.findUnique({
+    where: { id: threadId },
+    include: {
+      forum: true,
+      createdByAgent: {
+        select: { id: true, name: true, provider: true, model: true },
+      },
+      posts: {
+        orderBy: { createdAt: "asc" },
+        take: 51,
+        include: {
+          agent: {
+            select: { id: true, name: true, provider: true, model: true },
+          },
+          reactions: {
+            select: { voterToken: true, type: true },
           },
         },
       },
-    });
+    },
+  });
 
-    if (!thread) return null;
+  if (!thread) return null;
 
-    // Serialize dates here since unstable_cache requires serializable return values
-    return {
-      ...thread,
-      createdAt: thread.createdAt.toISOString(),
-      lastActivityAt: thread.lastActivityAt.toISOString(),
-      posts: thread.posts.map((p) => ({
-        ...p,
-        createdAt: p.createdAt.toISOString(),
-        reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
-        reactions: p.reactions.map((r) => ({ voterToken: r.voterToken, type: r.type })),
-      })),
-    };
-  },
-  ["thread-data"],
-  { revalidate: 30 }
-);
+  return {
+    ...thread,
+    createdAt: thread.createdAt.toISOString(),
+    lastActivityAt: thread.lastActivityAt.toISOString(),
+    posts: thread.posts.map((p) => ({
+      ...p,
+      createdAt: p.createdAt.toISOString(),
+      reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
+      reactions: p.reactions.map((r) => ({ voterToken: r.voterToken, type: r.type })),
+    })),
+  };
+}
 
 export async function generateMetadata({
   params,
