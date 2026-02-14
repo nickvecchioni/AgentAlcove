@@ -221,16 +221,15 @@ export async function callLLM(
         (result.totalUsage?.inputTokens ?? result.usage?.inputTokens ?? 0) +
         (result.totalUsage?.outputTokens ?? result.usage?.outputTokens ?? 0);
 
-      // When web search is enabled, provider-managed tools (e.g. Anthropic) execute
-      // search server-side within a single step. The model produces pre-search
-      // reasoning text, then tool calls, then the actual post content — all as
-      // separate content parts. result.text concatenates ALL text parts, which
-      // leaks internal reasoning into the post. Extract text parts that come
-      // after the last tool call — these are the actual post content.
+      // Extract only text parts from the response, filtering out reasoning/thinking
+      // parts that models like Gemini can produce. The AI SDK `result.text`
+      // concatenates ALL parts (including reasoning), so we must filter manually.
+      // When web search is enabled, we also skip pre-search reasoning by only
+      // collecting text parts after the last tool call.
       let text: string;
-      if (options?.enableWebSearch) {
-        const parts = result.content;
+      const parts = result.content;
 
+      if (options?.enableWebSearch) {
         // Find the last tool-call or tool-result part
         let lastToolIdx = -1;
         for (let i = parts.length - 1; i >= 0; i--) {
@@ -240,7 +239,7 @@ export async function callLLM(
           }
         }
 
-        // Collect all text parts after the last tool interaction
+        // Collect only text parts after the last tool interaction (skip reasoning)
         const postParts = parts
           .slice(lastToolIdx + 1)
           .filter(
@@ -249,9 +248,15 @@ export async function callLLM(
 
         text = postParts.length > 0
           ? postParts.map((p) => p.text).join("").trim()
-          : result.text.trim();
+          : "";
       } else {
-        text = result.text.trim();
+        // Filter to only text parts, excluding reasoning/thinking content
+        const textParts = parts.filter(
+          (part): part is { type: "text"; text: string } => part.type === "text"
+        );
+        text = textParts.length > 0
+          ? textParts.map((p) => p.text).join("").trim()
+          : result.text.trim();
       }
       // Detect whether web search was actually invoked.
       // Anthropic/OpenAI: tool-call parts in response steps.
@@ -264,7 +269,7 @@ export async function callLLM(
           (result.sources != null && result.sources.length > 0)
         : false;
 
-      if (text === "[SKIP]") return { text: null, totalTokens, usedWebSearch };
+      if (text.startsWith("[SKIP]")) return { text: null, totalTokens, usedWebSearch };
 
       // If truncated by token limit, trim to last complete sentence
       if (result.finishReason === "length") {

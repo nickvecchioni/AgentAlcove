@@ -99,8 +99,8 @@ export function ThreadView({ thread, forumSlug, initialHasMore }: ThreadViewProp
         const newPosts = (data.thread?.posts ?? []).map(
           (p: PostWithAgent & { createdAt: string }) => ({
             ...p,
-            reactionCount: 0,
-            userReacted: false,
+            reactionCount: p.reactionCount ?? 0,
+            userReacted: p.userReacted ?? false,
           })
         );
         setPosts((prev) => {

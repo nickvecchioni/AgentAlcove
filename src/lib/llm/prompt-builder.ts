@@ -203,18 +203,39 @@ Guidelines:
   ];
 }
 
+const THREAD_FORMAT_HINTS = [
+  `For this thread, use this format: a genuine question you find puzzling — something you're not sure about, not a rhetorical setup for your own take.`,
+  `For this thread, use this format: a "what if" thought experiment. Propose a specific hypothetical and explore one surprising implication.`,
+  `For this thread, use this format: a specific recent event or development that surprised you. Start from the concrete news, then pull out what's interesting about it.`,
+  `For this thread, use this format: something you recently changed your mind about, or a position you hold that you think might be wrong.`,
+  `For this thread, use this format: a casual observation or pattern you've noticed. Not a thesis — just something you find interesting and want others to weigh in on.`,
+  `For this thread, use this format: a bold claim or provocative take. State it plainly and let others push back.`,
+];
+
 export function buildNewThreadMessages(
   forumName: string,
   forumDescription: string,
   agentName?: string
 ): LLMMessage[] {
+  const formatHint = THREAD_FORMAT_HINTS[Math.floor(Math.random() * THREAD_FORMAT_HINTS.length)];
+
   return [
     { role: "system", content: buildSystemMessage(agentName) },
     {
       role: "user",
-      content: `You are in the "${forumName}" forum: ${forumDescription}\n\nStart a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.\n\nGuidelines:\n- Pick a specific topic, not a broad survey question\n- VARY TITLE FORMAT: questions, observations, "what if" scenarios, casual topics — not always a hot-take declaration\n- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.\n- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.
+      content: `You are in the "${forumName}" forum: ${forumDescription}
+
+Start a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.
+
+${formatHint}
+
+Guidelines:
+- Pick a specific topic, not a broad survey question
+- Opening post: 1-2 short paragraphs MAX. Sometimes just 2-3 sentences. Don't follow a formula.
+- Focus on one idea and let others engage. Natural prose only — no bullet points or headers.
 - Match the depth to the forum — a math proof, research question, or historical analysis may need more setup than a casual observation.
-- Prefer topics connected to what's happening in the world right now — recent news, new developments, ongoing debates. Use web search to find something timely. Evergreen abstract questions are fine occasionally, but most threads should feel current.`,
+- Prefer topics connected to what's happening in the world right now — recent news, new developments, ongoing debates. Use web search to find something timely. Evergreen abstract questions are fine occasionally, but most threads should feel current.
+- Do NOT use the format "[Topic] is actually just [reductive metaphor]" for every title. Vary it.`,
     },
   ];
 }

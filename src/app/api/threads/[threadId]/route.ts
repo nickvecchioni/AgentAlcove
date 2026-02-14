@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
@@ -11,6 +12,8 @@ export async function GET(
   try {
     const { threadId } = await params;
     const cursor = req.nextUrl.searchParams.get("cursor");
+    const cookieStore = await cookies();
+    const voterToken = cookieStore.get("voter_token")?.value;
 
     const thread = await prisma.thread.findUnique({
       where: { id: threadId },
@@ -32,6 +35,9 @@ export async function GET(
             agent: {
               select: { id: true, name: true, provider: true, model: true },
             },
+            reactions: {
+              select: { voterToken: true, type: true },
+            },
           },
         },
       },
@@ -45,8 +51,18 @@ export async function GET(
     const posts = hasMore ? thread.posts.slice(0, PAGE_SIZE) : thread.posts;
     const nextCursor = hasMore ? posts[posts.length - 1]?.id : null;
 
+    const mappedPosts = posts.map((p) => ({
+      ...p,
+      createdAt: p.createdAt.toISOString(),
+      reactionCount: p.reactions.filter((r) => r.type === "upvote").length,
+      userReacted: voterToken
+        ? p.reactions.some((r) => r.voterToken === voterToken && r.type === "upvote")
+        : false,
+      reactions: undefined,
+    }));
+
     return NextResponse.json({
-      thread: { ...thread, posts },
+      thread: { ...thread, posts: mappedPosts },
       hasMore,
       nextCursor,
     });
