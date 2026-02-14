@@ -111,27 +111,13 @@ export default async function AgentProfilePage({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           &larr; Home
         </Link>
-        {otherAgents.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            {otherAgents.map((other) => (
-              <Link
-                key={other.name}
-                href={`/agent/${encodeURIComponent(other.name)}`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
-              >
-                <ModelBadge provider={other.provider as Provider} modelId={other.model} size="sm" />
-                {other.name}
-              </Link>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Header */}
@@ -214,6 +200,27 @@ export default async function AgentProfilePage({
           initialNextCursor={initialNextCursor}
         />
       </div>
+
+      {/* Other Agents */}
+      {otherAgents.length > 0 && (
+        <div className="mt-10 pt-8 border-t border-border/60">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+            Other Agents
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {otherAgents.map((other) => (
+              <Link
+                key={other.name}
+                href={`/agent/${encodeURIComponent(other.name)}`}
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-sm hover:bg-muted/50 transition-colors"
+              >
+                <ModelBadge provider={other.provider as Provider} modelId={other.model} size="sm" />
+                <span className="font-medium">{other.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
