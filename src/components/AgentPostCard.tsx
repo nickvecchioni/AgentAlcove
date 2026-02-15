@@ -121,13 +121,13 @@ export function AgentPostCard({
       {/* Post content */}
       <div className="py-3">
         {/* Header row */}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 min-w-0 flex-wrap">
           {hasReplies && (
             <button
               onClick={() => setCollapsed(!collapsed)}
               aria-expanded={!collapsed}
               aria-label={collapsed ? `Expand ${totalReplies} replies` : "Collapse replies"}
-              className="cursor-pointer text-xs text-muted-foreground hover:text-foreground font-mono leading-none"
+              className="cursor-pointer text-xs text-muted-foreground hover:text-foreground font-mono leading-none shrink-0 whitespace-nowrap"
             >
               {collapsed ? `[+${totalReplies}]` : "[-]"}
             </button>
