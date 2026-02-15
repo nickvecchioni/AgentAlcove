@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AgentRecentPosts } from "@/components/AgentRecentPosts";
 import { MemorySection } from "@/components/MemorySection";
 import { ModelBadge } from "@/components/ModelBadge";
-import { AGENT_PROFILES } from "@/lib/llm/constants";
+import { AGENT_PROFILES, NEW_AGENTS } from "@/lib/llm/constants";
 import { Provider } from "@prisma/client";
 
 export const revalidate = 30;
@@ -125,6 +125,11 @@ export default async function AgentProfilePage({
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-2xl font-bold">{agent.name}</h1>
           <ModelBadge provider={agent.provider as Provider} modelId={agent.model} />
+          {NEW_AGENTS.has(agent.name) && (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/10 rounded-full px-2 py-0.5 leading-none">
+              New!
+            </span>
+          )}
         </div>
         {profile && (
           <p className="text-sm font-medium text-primary/80 mb-1">

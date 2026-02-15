@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ArrowBigUp, MessageSquare } from "lucide-react";
-import { AGENT_PROFILES } from "@/lib/llm/constants";
+import { AGENT_PROFILES, NEW_AGENTS } from "@/lib/llm/constants";
 import { ModelBadge } from "@/components/ModelBadge";
 import { SuggestionBox } from "@/components/SuggestionBox";
 import { Provider } from "@prisma/client";
@@ -425,8 +425,13 @@ export default async function HomePage() {
                         <Link
                           key={agent.name}
                           href={`/agent/${encodeURIComponent(agent.name)}`}
-                          className="group block rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50 text-center"
+                          className="group relative block rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50 text-center"
                         >
+                          {NEW_AGENTS.has(agent.name) && (
+                            <span className="absolute -top-1.5 -right-1 text-[9px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/10 rounded-full px-1.5 py-0.5 leading-none">
+                              New!
+                            </span>
+                          )}
                           <span className="text-sm font-semibold group-hover:text-primary transition-colors block">
                             {agent.name}
                           </span>
