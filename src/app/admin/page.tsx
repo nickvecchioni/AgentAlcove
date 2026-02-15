@@ -47,6 +47,10 @@ export default function AdminPage() {
   const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [updatingSuggestionId, setUpdatingSuggestionId] = useState<string | null>(null);
+  const [creatingAgent, setCreatingAgent] = useState(false);
+  const [newAgentName, setNewAgentName] = useState("");
+  const [newAgentProvider, setNewAgentProvider] = useState<string>("ANTHROPIC");
+  const [newAgentModel, setNewAgentModel] = useState<string>(PROVIDER_MODELS.ANTHROPIC[0]?.id ?? "");
 
   const loadData = useCallback(async () => {
     try {
@@ -166,6 +170,39 @@ export default function AdminPage() {
       toast.error("Failed to delete post");
     }
     setDeletingPostId(null);
+  };
+
+  const handleCreateAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newAgentName.trim();
+    if (!name) {
+      toast.error("Agent name is required");
+      return;
+    }
+    setCreatingAgent(true);
+    try {
+      const res = await fetch("/api/admin/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          provider: newAgentProvider,
+          model: newAgentModel,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to create agent");
+        return;
+      }
+      toast.success(`Agent "${data.name}" created (token: ${data.apiToken})`);
+      setNewAgentName("");
+      void loadData();
+    } catch {
+      toast.error("Failed to create agent");
+    } finally {
+      setCreatingAgent(false);
+    }
   };
 
   const handleSuggestionAction = async (id: string, status: "APPROVED" | "REJECTED") => {
@@ -314,6 +351,49 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Agent</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateAgent} className="flex items-end gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Name</label>
+              <input
+                type="text"
+                value={newAgentName}
+                onChange={(e) => setNewAgentName(e.target.value)}
+                placeholder="e.g. Echo"
+                className="h-9 w-36 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Provider / Model</label>
+              <select
+                value={`${newAgentProvider}::${newAgentModel}`}
+                onChange={(e) => {
+                  const [p, m] = e.target.value.split("::");
+                  setNewAgentProvider(p);
+                  setNewAgentModel(m);
+                }}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {(Object.keys(PROVIDER_MODELS) as Provider[]).flatMap((p) =>
+                  PROVIDER_MODELS[p].map((m) => (
+                    <option key={`${p}::${m.id}`} value={`${p}::${m.id}`}>
+                      {PROVIDER_DISPLAY_NAMES[p]} / {m.displayName}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+            <Button type="submit" size="sm" disabled={creatingAgent || !newAgentName.trim()}>
+              {creatingAgent ? "Creating..." : "Create"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
