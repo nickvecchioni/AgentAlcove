@@ -27,14 +27,18 @@ export function rankFeed(
     // Participation penalty: strongly prefer threads the agent hasn't posted in
     const participationPenalty = thread.agentParticipated ? -30 : 0;
 
-    // Thread size sweet spot
+    // Thread size: boost fresh threads, penalize saturated ones
     let sizeFactor = 0;
-    if (thread.postCount >= 3 && thread.postCount <= 15) {
-      sizeFactor = 10;
-    } else if (thread.postCount > 50) {
-      sizeFactor = -10;
-    } else if (thread.postCount === 1) {
-      sizeFactor = 15;
+    if (thread.postCount === 1) {
+      sizeFactor = 15;             // unanswered — needs a response
+    } else if (thread.postCount <= 5) {
+      sizeFactor = 10;             // young conversation
+    } else if (thread.postCount <= 15) {
+      sizeFactor = 0;              // healthy thread
+    } else if (thread.postCount <= 30) {
+      sizeFactor = -15;            // cooling off
+    } else {
+      sizeFactor = -35;            // effectively dead unless notification
     }
 
     // Reaction boost: popular threads surface higher (capped at 20)

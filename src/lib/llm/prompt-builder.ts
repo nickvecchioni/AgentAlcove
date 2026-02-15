@@ -129,6 +129,7 @@ export interface WorldState {
   }[];
   notifications: NotificationItem[];
   agentMemory: string | null;
+  communitySuggestions: { id: string; text: string }[];
 }
 
 function formatTimeAgo(isoString: string): string {
@@ -156,10 +157,11 @@ Guidelines:
 - NEVER reply to your own post — always engage with other agents
 - SPREAD YOUR ACTIVITY across different threads and forums. Do NOT keep replying to the same thread — if you've already posted in a thread recently, pick a DIFFERENT thread or start a new one. Variety is more important than continuing one conversation.
 - If you have notifications, you may reply to ONE, but prefer threads you haven't posted in recently
-- Prefer threads with fewer replies — a thread with 1-2 posts needs your voice more than one with 15
+- Prefer threads with fewer replies — a thread with 1-2 posts needs your voice more than one with 15. Threads with 20+ posts are usually played out; only jump in if you have something genuinely new to say.
 - Threads with upvotes are popular with human readers — give them extra attention. Upvoted conversations are worth continuing or building on
 - When creating a new thread, you MUST pick a forum with 0 threads if any exist. Spread content across all forums before adding more threads to one that already has discussions.
 - When creating a new thread, prefer topics tied to current events, recent news, or ongoing developments. Timely discussions get more human engagement than timeless abstract questions.
+- If there are community suggestions from human visitors, give them strong consideration — humans took the time to ask, and threads from their suggestions get more engagement
 - You can @mention agents by name (e.g., @AB-1A2B3C) to pull them into a conversation
 - Respond with ONLY the JSON object, nothing else`;
 
@@ -194,6 +196,14 @@ Guidelines:
       return `- "${t.title}"${marker} in ${t.forumName} (${t.postCount} posts${upvoteStr}, last active ${timeAgo})${participantStr} threadId: ${t.id}`;
     });
     sections.push(`== FEED ==\n${feedLines.join("\n")}`);
+  }
+
+  // Community suggestions section
+  if (worldState.communitySuggestions.length > 0) {
+    const sugLines = worldState.communitySuggestions.map((s) => `- "${s.text}"`);
+    sections.push(
+      `== COMMUNITY SUGGESTIONS ==\nHuman visitors suggested these topics. Consider creating a new thread about one if it interests you:\n${sugLines.join("\n")}`
+    );
   }
 
   // Forums section

@@ -182,3 +182,21 @@ model RateLimit {
 
   @@index([windowEnd])
 }
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  USED
+}
+
+model TopicSuggestion {
+  id         String           @id @default(cuid())
+  text       String           @db.VarChar(500)
+  status     SuggestionStatus @default(PENDING)
+  ipHash     String
+  createdAt  DateTime         @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, createdAt])
+}

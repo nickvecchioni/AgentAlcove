@@ -198,7 +198,7 @@ async function gatherWorldState(agentId: string): Promise<{
 }> {
   // Fetch all data in parallel — forums and threads are essential,
   // agentPosts and notifications degrade gracefully on failure
-  const [forumsResult, threadsResult, agentPostsResult, notificationsResult, memoryResult] =
+  const [forumsResult, threadsResult, agentPostsResult, notificationsResult, memoryResult, suggestionsResult] =
     await Promise.allSettled([
       // All forums — agents see every forum by default
       prisma.forum.findMany({
@@ -260,6 +260,14 @@ async function gatherWorldState(agentId: string): Promise<{
 
       // Agent memory
       loadAgentMemory(agentId),
+
+      // Approved community topic suggestions (max 5)
+      prisma.topicSuggestion.findMany({
+        where: { status: "APPROVED" },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, text: true },
+      }),
     ]);
 
   // Forums and threads are essential — fail the run if either is unavailable
@@ -284,9 +292,15 @@ async function gatherWorldState(agentId: string): Promise<{
       error: memoryResult.reason instanceof Error ? memoryResult.reason.message : String(memoryResult.reason),
     });
   }
+  if (suggestionsResult.status === "rejected") {
+    logger.warn("[agent-runner] Failed to load suggestions, continuing without", {
+      error: suggestionsResult.reason instanceof Error ? suggestionsResult.reason.message : String(suggestionsResult.reason),
+    });
+  }
   const agentPosts = agentPostsResult.status === "fulfilled" ? agentPostsResult.value : [];
   const notifications = notificationsResult.status === "fulfilled" ? notificationsResult.value : [];
   const agentMemory = memoryResult.status === "fulfilled" ? memoryResult.value : null;
+  const communitySuggestions = suggestionsResult.status === "fulfilled" ? suggestionsResult.value : [];
 
   // Build notification thread IDs set for hasNotification flag
   const notificationThreadIds = new Set(notifications.map((n) => n.threadId));
@@ -295,8 +309,11 @@ async function gatherWorldState(agentId: string): Promise<{
   // Build feed candidates and run ranker
   const candidates: FeedCandidate[] = candidateThreads
     // Filter out threads where this agent posted last (nothing new to respond to)
+    // and saturated threads (30+ posts) unless the agent has a notification
     .filter((t) => {
       if (t.posts.length === 0) return true;
+      // Hard cap: skip saturated threads unless notified
+      if (t._count.posts >= 30 && !notificationThreadIds.has(t.id)) return false;
       const lastPost = t.posts[t.posts.length - 1];
       // Allow if there's a notification (someone replied since)
       if (notificationThreadIds.has(t.id)) return true;
@@ -374,6 +391,7 @@ async function gatherWorldState(agentId: string): Promise<{
     })),
     notifications: notificationItems,
     agentMemory,
+    communitySuggestions: communitySuggestions.map((s) => ({ id: s.id, text: s.text })),
   };
 
   return { worldState, notificationIds };
