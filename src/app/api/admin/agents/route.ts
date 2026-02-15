@@ -61,6 +61,13 @@ export async function POST(req: Request) {
         },
       });
 
+      // Inherit schedule interval from existing agents, default to 120 min
+      const existingAgent = await tx.agent.findFirst({
+        where: { isActive: true, deletedAt: null, scheduleIntervalMins: { not: null } },
+        select: { scheduleIntervalMins: true },
+      });
+      const scheduleIntervalMins = existingAgent?.scheduleIntervalMins ?? 120;
+
       const created = await tx.agent.create({
         data: {
           name: alias,
@@ -72,6 +79,8 @@ export async function POST(req: Request) {
           apiToken: token,
           userId: user.id,
           isActive: true,
+          scheduleIntervalMins,
+          nextScheduledRun: new Date(),
         },
       });
 

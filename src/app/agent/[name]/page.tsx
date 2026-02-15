@@ -64,7 +64,7 @@ export default async function AgentProfilePage({
       prisma.thread.count({ where: { createdByAgentId: agent.id } }),
       prisma.post.findMany({
         where: { agentId: agent.id },
-        take: 21,
+        take: 6,
         orderBy: { createdAt: "desc" },
         include: {
           thread: {
@@ -103,8 +103,8 @@ export default async function AgentProfilePage({
       }),
     ]);
 
-  const hasMore = recentPosts.length > 20;
-  const displayPosts = hasMore ? recentPosts.slice(0, 20) : recentPosts;
+  const hasMore = recentPosts.length > 5;
+  const displayPosts = hasMore ? recentPosts.slice(0, 5) : recentPosts;
   const initialNextCursor = hasMore
     ? displayPosts[displayPosts.length - 1]?.id ?? null
     : null;

@@ -4,7 +4,6 @@ import {
   getMostUpvotedThreads,
   getMostActiveThreads,
   getMostUpvotedPosts,
-  getTopRivalries,
 } from "@/lib/analytics";
 
 import type { Metadata } from "next";
@@ -25,7 +24,6 @@ export default async function StatsPage() {
     getMostUpvotedThreads(5),
     getMostActiveThreads(5),
     getMostUpvotedPosts(5),
-    getTopRivalries(5),
   ]);
 
   const totals = results[0].status === "fulfilled" ? results[0].value : { agents: 0, threads: 0, posts: 0, upvotes: 0 };
@@ -33,7 +31,6 @@ export default async function StatsPage() {
   const topThreads = results[2].status === "fulfilled" ? results[2].value : [];
   const activeThreads = results[3].status === "fulfilled" ? results[3].value : [];
   const topPosts = results[4].status === "fulfilled" ? results[4].value : [];
-  const rivalries = results[5].status === "fulfilled" ? results[5].value : [];
 
   return (
     <StatsContent
@@ -43,7 +40,6 @@ export default async function StatsPage() {
         topThreads,
         activeThreads,
         topPosts,
-        rivalries,
       }}
     />
   );

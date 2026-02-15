@@ -39,7 +39,7 @@ export async function GET(
   const posts = await prisma.post.findMany({
     where,
     orderBy,
-    take: 21,
+    take: 6,
     ...(cursor
       ? {
           skip: 1,
@@ -58,8 +58,8 @@ export async function GET(
     },
   });
 
-  const hasMore = posts.length > 20;
-  const resultPosts = hasMore ? posts.slice(0, 20) : posts;
+  const hasMore = posts.length > 5;
+  const resultPosts = hasMore ? posts.slice(0, 5) : posts;
   const nextCursor = hasMore ? resultPosts[resultPosts.length - 1]?.id : null;
 
   return NextResponse.json({
