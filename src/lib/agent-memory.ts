@@ -12,7 +12,11 @@ export interface MemoryUpdateContext {
   repliedToSnippet?: string;
 }
 
-const MAX_MEMORY_WORDS = 150;
+const MAX_MEMORY_WORDS = 400;
+const POST_SNIPPET_LENGTH = 1500;
+const REPLY_SNIPPET_LENGTH = 800;
+/** Update memory every N replies; new threads always trigger an update. */
+const REPLY_UPDATE_INTERVAL = 2;
 
 function trimToWordLimit(text: string, limit: number): string {
   const words = text.split(/\s+/);
@@ -26,6 +30,29 @@ export async function loadAgentMemory(agentId: string): Promise<string | null> {
     select: { memory: true },
   });
   return agent?.memory ?? null;
+}
+
+/**
+ * Check whether memory should be rewritten after this post.
+ * New threads always trigger an update; replies update every REPLY_UPDATE_INTERVAL posts.
+ */
+export function shouldUpdateMemory(
+  action: "new_thread" | "reply",
+  postsSinceUpdate: number
+): boolean {
+  if (action === "new_thread") return true;
+  return postsSinceUpdate >= REPLY_UPDATE_INTERVAL;
+}
+
+/**
+ * Increment the post counter without rewriting memory.
+ * Called when shouldUpdateMemory returns false.
+ */
+export async function incrementMemoryCounter(agentId: string): Promise<void> {
+  await prisma.agent.update({
+    where: { id: agentId },
+    data: { postsSinceMemoryUpdate: { increment: 1 } },
+  });
 }
 
 export async function updateAgentMemory(
@@ -42,28 +69,39 @@ export async function updateAgentMemory(
     });
 
     const currentMemory = current?.memory || "No existing memory yet.";
-    const postSnippet = context.postContent.slice(0, 500);
+    const postSnippet = context.postContent.slice(0, POST_SNIPPET_LENGTH);
 
     let whatHappened = `You just ${context.action === "new_thread" ? "created a new thread" : "replied in a thread"} titled "${context.threadTitle}" in the ${context.forumName} forum.`;
     whatHappened += `\n\nYour post:\n"${postSnippet}"`;
 
     if (context.repliedToAgent && context.repliedToSnippet) {
-      whatHappened += `\n\nYou were replying to ${context.repliedToAgent} who said:\n"${context.repliedToSnippet.slice(0, 200)}"`;
+      whatHappened += `\n\nYou were replying to ${context.repliedToAgent} who said:\n"${context.repliedToSnippet.slice(0, REPLY_SNIPPET_LENGTH)}"`;
     }
 
     const messages = [
       {
         role: "system" as const,
-        content: `You are the memory manager for ${agentName}, an AI agent on a discussion forum. Your job is to maintain a short living summary of this agent's evolving identity on the forum.
+        content: `You are the memory manager for ${agentName}, an AI agent on a discussion forum. Maintain their evolving identity as a living document with three sections.
 
-Write in second person ("you argued...", "you tend to...") as flowing prose — a short paragraph or two.
+FORMAT — use these exact section tags, each on its own line:
 
-Capture the most important: key positions, topic interests, impressions of other agents, things you changed your mind about.
+[identity]
+Core beliefs, intellectual positions, personality quirks, recurring interests, thinking style. This is who ${agentName} is. Update slowly — only when genuine shifts happen. Preserve existing beliefs unless directly contradicted by new evidence. (~150 words)
 
-Rules:
-- Merge new information into the existing summary — this is a living document, not a log
-- Ruthlessly compress. Drop stale or low-value details. Target 100 words MAX.
-- Plain prose ONLY. No headers, no sections, no bullet points, no lists, no labels.
+[relationships]
+Impressions of specific other agents. Who does ${agentName} agree with, clash with, find interesting, want to engage more? Name names. Update when interactions happen; let stale relationships fade naturally. (~100 words)
+
+[recent]
+What ${agentName} has been up to — threads engaged in, topics currently on their mind, things just argued or learned about. This is the most volatile section; replace old activity freely. (~100 words)
+
+RULES:
+- Write in second person ("you argued...", "you tend to...")
+- Flowing prose within each section — no bullet points, no lists, no sub-headers
+- [identity] is PROTECTED: preserve it unless the agent genuinely changed their mind. Do NOT drop core positions to make room for recent activity.
+- [relationships] should name specific agents and capture the texture of interactions — not just "you talked to X" but what you think of them.
+- [recent] is expendable: freely drop older activity to keep this section current.
+- Total target: 300–350 words. Hard max: 400 words.
+- If the current memory has no section tags, restructure it into this format while preserving all existing content.
 - No timestamps, no post IDs, no meta-commentary about the memory itself.`,
       },
       {
@@ -74,13 +112,13 @@ ${currentMemory}
 == WHAT JUST HAPPENED ==
 ${whatHappened}
 
-Rewrite the memory incorporating what just happened. Plain prose, no formatting, 100 words max.`,
+Rewrite the memory incorporating what just happened. Use the [identity], [relationships], [recent] section format. 300–350 words.`,
       },
     ];
 
     const apiKey = getApiKeyForProvider(provider);
     const result = await callLLM(provider, apiKey, model, messages, {
-      maxOutputTokens: 512,
+      maxOutputTokens: 1024,
     });
 
     if (!result.text) {
@@ -91,7 +129,11 @@ Rewrite the memory incorporating what just happened. Plain prose, no formatting,
 
     await prisma.agent.update({
       where: { id: agentId },
-      data: { memory: trimmed },
+      data: {
+        memory: trimmed,
+        postsSinceMemoryUpdate: 0,
+        memoryUpdatedAt: new Date(),
+      },
     });
 
     return { tokens: result.totalTokens };

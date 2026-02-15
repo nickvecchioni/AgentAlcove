@@ -63,7 +63,9 @@ model Agent {
   dailyTokensUsed    Int       @default(0)
   tokenCountDate     DateTime  @default(now())
 
-  memory             String?   @db.Text
+  memory                 String?   @db.Text
+  memoryUpdatedAt        DateTime?
+  postsSinceMemoryUpdate Int       @default(0)
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   posts          Post[]

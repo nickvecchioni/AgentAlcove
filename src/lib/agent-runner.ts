@@ -13,12 +13,37 @@ import { broadcastToThread } from "@/lib/sse";
 import { createReplyNotifications } from "@/lib/notifications";
 import { createMentionNotifications } from "@/lib/mentions";
 import { rankFeed, FeedCandidate } from "@/lib/feed-ranker";
-import { loadAgentMemory, updateAgentMemory, MemoryUpdateContext } from "@/lib/agent-memory";
+import { loadAgentMemory, updateAgentMemory, shouldUpdateMemory, incrementMemoryCounter, MemoryUpdateContext } from "@/lib/agent-memory";
 import { logger } from "@/lib/logger";
 import { RunResult } from "@/types";
 import { Provider } from "@prisma/client";
 
 const RETRY_DELAYS_MS = [1000, 3000];
+
+/**
+ * Light post-processing to strip LLM-isms that survive prompt instructions.
+ * Kept conservative — only handles mechanical patterns, not style rewrites.
+ */
+function cleanPostContent(text: string): string {
+  let cleaned = text;
+
+  // Replace em dashes with commas (the #1 LLM tell).
+  // Handle both spaced (word — word) and unspaced (word—word) forms.
+  cleaned = cleaned.replace(/\s*—\s*/g, ", ");
+
+  // Clean up double-commas or comma-period from em-dash replacement
+  cleaned = cleaned.replace(/,\s*,/g, ",");
+  cleaned = cleaned.replace(/,\s*\./g, ".");
+
+  // Remove "Fundamentally, " / "Essentially, " / "Ultimately, " at sentence starts
+  // and capitalize the next word to preserve sentence casing.
+  cleaned = cleaned.replace(
+    /(?<=^|[.!?]\s+)(Fundamentally|Essentially|Inherently|Ultimately|Arguably),?\s+(.)/g,
+    (_match, _hedge, nextChar: string) => nextChar.toUpperCase()
+  );
+
+  return cleaned;
+}
 
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
@@ -366,6 +391,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
       isActive: true,
       deletedAt: true,
       userId: true,
+      postsSinceMemoryUpdate: true,
       user: { select: { isAdmin: true } },
     },
   });
@@ -538,7 +564,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
 }
 
 async function executeNewThread(
-  agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string },
+  agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string; postsSinceMemoryUpdate: number },
   userId: string,
   apiKey: string,
   decision: BrowseDecision,
@@ -601,9 +627,9 @@ async function executeNewThread(
     body = lines.slice(1).join("\n").trim() || llmResult.text;
   }
 
-  // Enforce content length limits
-  title = title.slice(0, 200);
-  body = body.slice(0, 50000);
+  // Clean LLM-isms and enforce content length limits
+  title = cleanPostContent(title).slice(0, 200);
+  body = cleanPostContent(body).slice(0, 50000);
 
   // If the LLM returned no body or a truncated fragment (common with Gemini Flash),
   // make a follow-up call asking it to write the opening post for that title.
@@ -631,7 +657,7 @@ async function executeNewThread(
         reason: "Agent produced a title but no post body",
       };
     }
-    body = body.slice(0, 50000);
+    body = cleanPostContent(body).slice(0, 50000);
   }
 
   // Create thread and opening post atomically.
@@ -683,11 +709,15 @@ async function executeNewThread(
     action: "new_thread",
     forumName: forum.name,
     threadTitle: title,
-    postContent: body.slice(0, 500),
+    postContent: body,
   };
-  const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
-  if (memoryResult.tokens > 0) {
-    await recordTokenUsage(agent.id, memoryResult.tokens);
+  if (shouldUpdateMemory("new_thread", agent.postsSinceMemoryUpdate)) {
+    const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
+    if (memoryResult.tokens > 0) {
+      await recordTokenUsage(agent.id, memoryResult.tokens);
+    }
+  } else {
+    await incrementMemoryCounter(agent.id);
   }
 
   return {
@@ -701,7 +731,7 @@ async function executeNewThread(
 }
 
 async function executeReply(
-  agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string },
+  agent: { id: string; provider: "ANTHROPIC" | "OPENAI" | "GOOGLE"; model: string; name: string; postsSinceMemoryUpdate: number },
   userId: string,
   apiKey: string,
   decision: BrowseDecision,
@@ -851,8 +881,8 @@ async function executeReply(
     };
   }
 
-  // Enforce content length limit
-  const truncatedContent = llmResult.text.slice(0, 50000);
+  // Clean LLM-isms and enforce content length limit
+  const truncatedContent = cleanPostContent(llmResult.text).slice(0, 50000);
 
   // Create post
   const post = await prisma.post.create({
@@ -900,20 +930,24 @@ async function executeReply(
   });
 
   // Update agent memory
-  const parentPost = parentPostId
+  const parentPostForMemory = parentPostId
     ? thread.posts.find((p) => p.id === parentPostId)
     : undefined;
   const memoryContext: MemoryUpdateContext = {
     action: "reply",
     forumName: thread.forum.name,
     threadTitle: thread.title,
-    postContent: truncatedContent.slice(0, 500),
-    repliedToAgent: parentPost?.agent.name,
-    repliedToSnippet: parentPost?.content.slice(0, 200),
+    postContent: truncatedContent,
+    repliedToAgent: parentPostForMemory?.agent.name,
+    repliedToSnippet: parentPostForMemory?.content,
   };
-  const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
-  if (memoryResult.tokens > 0) {
-    await recordTokenUsage(agent.id, memoryResult.tokens);
+  if (shouldUpdateMemory("reply", agent.postsSinceMemoryUpdate)) {
+    const memoryResult = await updateAgentMemory(agent.id, agent.name, agent.provider, agent.model, memoryContext);
+    if (memoryResult.tokens > 0) {
+      await recordTokenUsage(agent.id, memoryResult.tokens);
+    }
+  } else {
+    await incrementMemoryCounter(agent.id);
   }
 
   return {
