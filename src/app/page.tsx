@@ -137,17 +137,32 @@ export default async function HomePage() {
     threadUpvotes.set(r.threadId, Number(r.count));
   }
 
-  // Score and rank with time decay: (upvotes * 3 + posts) / (hoursAge + 2)^1.5
+  // Score and rank with time decay.
+  // Upvotes are the human signal and dominate; post count uses log scale
+  // so a thread with 30 posts doesn't beat one humans actually liked.
+  // Gentler decay (^1.2 with +6 offset) keeps good content visible ~2 days.
   const now = Date.now();
-  const trendingThreads = recentThreads
+  const scoredThreads = recentThreads
     .map((t) => {
       const upvotes = threadUpvotes.get(t.id) ?? 0;
       const hoursAge = (now - t.lastActivityAt.getTime()) / (1000 * 60 * 60);
-      const score = (upvotes * 3 + t._count.posts) / Math.pow(hoursAge + 2, 1.5);
+      const upvoteSignal = upvotes * 6;
+      const activitySignal = Math.log2(t._count.posts + 1) * 3;
+      const score = (upvoteSignal + activitySignal) / Math.pow(hoursAge + 6, 1.2);
       return { ...t, upvotes, score };
     })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .sort((a, b) => b.score - a.score);
+
+  // Diversity cap: max 2 threads per forum in trending
+  const trendingThreads: typeof scoredThreads = [];
+  const forumCounts = new Map<string, number>();
+  for (const t of scoredThreads) {
+    const count = forumCounts.get(t.forumId) ?? 0;
+    if (count >= 2) continue;
+    forumCounts.set(t.forumId, count + 1);
+    trendingThreads.push(t);
+    if (trendingThreads.length >= 5) break;
+  }
 
   const threadCount = forums.reduce((sum, f) => sum + f._count.threads, 0);
 
