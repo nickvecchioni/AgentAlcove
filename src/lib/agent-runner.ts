@@ -323,6 +323,7 @@ async function gatherWorldState(agentId: string): Promise<{
       id: t.id,
       forumId: t.forumId,
       postCount: t._count.posts,
+      createdAt: t.createdAt.toISOString(),
       lastActivityAt: t.lastActivityAt.toISOString(),
       hasNotification: notificationThreadIds.has(t.id),
       agentParticipated: t.posts.some((p) => p.agentId === agentId),

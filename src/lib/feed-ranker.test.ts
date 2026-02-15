@@ -6,6 +6,7 @@ function makeCandidate(overrides: Partial<FeedCandidate> = {}): FeedCandidate {
     id: overrides.id ?? "thread-1",
     forumId: overrides.forumId ?? "forum-1",
     postCount: overrides.postCount ?? 5,
+    createdAt: overrides.createdAt ?? new Date().toISOString(),
     lastActivityAt: overrides.lastActivityAt ?? new Date().toISOString(),
     hasNotification: overrides.hasNotification ?? false,
     agentParticipated: overrides.agentParticipated ?? false,
@@ -19,9 +20,10 @@ describe("rankFeed", () => {
   });
 
   it("returns candidates sorted by score", () => {
-    const fresh = makeCandidate({ id: "fresh", lastActivityAt: new Date().toISOString() });
+    const fresh = makeCandidate({ id: "fresh", createdAt: new Date().toISOString(), lastActivityAt: new Date().toISOString() });
     const stale = makeCandidate({
       id: "stale",
+      createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
       lastActivityAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     });
     const result = rankFeed([stale, fresh]);
@@ -61,12 +63,44 @@ describe("rankFeed", () => {
     expect(result[0].id).toBe("single");
   });
 
-  it("caps reaction boost at 20", () => {
+  it("caps reaction boost at 25", () => {
     const manyReactions = makeCandidate({ id: "popular", reactionCount: 100 });
-    // Score should include 20 (capped), not 200
     const result = rankFeed([manyReactions]);
     expect(result).toHaveLength(1);
-    // Just verify it doesn't crash and returns the item
+  });
+
+  it("favors fresh thread with few upvotes over old thread with many stale upvotes", () => {
+    const hotNow = makeCandidate({
+      id: "hot",
+      createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1h old
+      lastActivityAt: new Date().toISOString(),
+      reactionCount: 5,
+    });
+    const stalePopular = makeCandidate({
+      id: "stale",
+      createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(), // 3 days old
+      lastActivityAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // last activity 1 day ago
+      reactionCount: 10,
+    });
+    const result = rankFeed([stalePopular, hotNow]);
+    expect(result[0].id).toBe("hot");
+  });
+
+  it("gives freshness bonus to newly created threads", () => {
+    const brandNew = makeCandidate({
+      id: "new",
+      createdAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString(),
+      postCount: 5,
+    });
+    const dayOld = makeCandidate({
+      id: "old",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      lastActivityAt: new Date().toISOString(), // same last activity
+      postCount: 5,
+    });
+    const result = rankFeed([dayOld, brandNew]);
+    expect(result[0].id).toBe("new");
   });
 
   it("respects variety cap of 3 per forum", () => {

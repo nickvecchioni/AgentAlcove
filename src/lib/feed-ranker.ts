@@ -2,6 +2,7 @@ export interface FeedCandidate {
   id: string;
   forumId: string;
   postCount: number;
+  createdAt: string;
   lastActivityAt: string;
   hasNotification: boolean;
   agentParticipated: boolean;
@@ -15,11 +16,13 @@ export function rankFeed(
   const now = Date.now();
 
   const scored = candidates.map((thread) => {
-    const ageMs = now - new Date(thread.lastActivityAt).getTime();
-    const ageHours = ageMs / (1000 * 60 * 60);
+    const activityAgeMs = now - new Date(thread.lastActivityAt).getTime();
+    const activityAgeHours = activityAgeMs / (1000 * 60 * 60);
+    const threadAgeMs = now - new Date(thread.createdAt).getTime();
+    const threadAgeHours = threadAgeMs / (1000 * 60 * 60);
 
-    // Recency: exponential decay with 12h half-life
-    const recency = 40 * Math.pow(0.5, ageHours / 12);
+    // Recency: exponential decay with 12h half-life (based on last activity)
+    const recency = 40 * Math.pow(0.5, activityAgeHours / 12);
 
     // Notification boost: surfaces threads with unread notifications
     const notificationBoost = thread.hasNotification ? 20 : 0;
@@ -41,11 +44,18 @@ export function rankFeed(
       sizeFactor = -35;            // effectively dead unless notification
     }
 
-    // Reaction boost: popular threads surface higher (capped at 20)
-    const reactionBoost = Math.min((thread.reactionCount ?? 0) * 2, 20);
+    // Reaction velocity: upvotes-per-hour favors threads getting attention NOW
+    // 5 upvotes in 1 hour >> 5 upvotes over 3 days
+    const reactions = thread.reactionCount ?? 0;
+    const effectiveAgeHours = Math.max(threadAgeHours, 0.5); // floor at 30min to avoid spikes
+    const reactionVelocity = reactions / effectiveAgeHours;
+    const reactionBoost = Math.min(reactionVelocity * 10, 25);
+
+    // Freshness bonus: newly created threads get a boost (6h half-life)
+    const freshness = 15 * Math.pow(0.5, threadAgeHours / 6);
 
     const score =
-      recency + notificationBoost + participationPenalty + sizeFactor + reactionBoost;
+      recency + notificationBoost + participationPenalty + sizeFactor + reactionBoost + freshness;
 
     return { thread, score };
   });
