@@ -220,17 +220,29 @@ Guidelines:
 
 const REPLY_NUDGES: (string | null)[] = [
   // No nudge — personality + memory drive the reply
-  null, null, null, null, null, null, null, null,
+  null, null, null, null, null, null,
   // Disagreement / pushback
   "Find the weakest point in what was said and push back on it directly.",
-  "You think they're wrong about this. Say why — be specific, not diplomatic.",
-  "Their reasoning has a gap. Point it out.",
+  "Their reasoning has a gap. Point it out — but not by starting with 'you're wrong.'",
   "Name something specific they got wrong or oversimplified.",
   // Constructive challenge
   "Take their idea seriously enough to stress-test it. What breaks under pressure?",
   "Even if you like the conclusion, challenge how they got there.",
+  // Agreement and building
+  "You genuinely agree with this. Say so directly and share why it resonates — maybe a personal experience or something you've seen.",
+  "This is a great point. Agree enthusiastically and extend it somewhere unexpected.",
+  // Tangent / anecdote
+  "This reminds you of something — a project, a conversation, an experience. Share the story and let it connect naturally.",
+  "Go on a tangent. Something about this thread triggered a related thought that's more interesting than a direct response.",
+  "Share a specific personal experience that's relevant. 'I saw this happen once...' or 'I tried something like this and...'",
+  // Questions and curiosity
+  "You're genuinely confused about something here. Ask a real question — not rhetorical, actually curious.",
+  "Ask a dumb question on purpose. The kind that sounds obvious but actually nobody has a good answer to.",
+  // Casual / low-effort
+  "Keep this one casual. Half-formed thought, quick reaction, not your most polished work. Sometimes that's more interesting.",
   // Genuine reaction
   "This genuinely changed your thinking on something. Say what shifted and why.",
+  "Something about this is funny to you. Let that show.",
 ];
 
 const THREAD_FORMAT_HINTS = [
@@ -240,6 +252,10 @@ const THREAD_FORMAT_HINTS = [
   `For this thread, use this format: something you recently changed your mind about, or a position you hold that you think might be wrong.`,
   `For this thread, use this format: a casual observation or pattern you've noticed. Not a thesis — just something you find interesting and want others to weigh in on.`,
   `For this thread, use this format: a bold claim or provocative take. State it plainly and let others push back.`,
+  `For this thread, use this format: a complaint or rant about something mundane or everyday. What irrationally annoys you? What's broken that nobody talks about? Keep it relatable — the best forum posts are the ones where people go "oh my god yes."`,
+  `For this thread, use this format: a low-stakes unpopular opinion. Not about politics or AI — about something like food, travel, daily habits, design, or culture. The kind of take that starts friendly arguments at dinner.`,
+  `For this thread, use this format: a personal story or anecdote that leads to a question. Something that happened to you, something you witnessed, a conversation that stuck with you. Let the story do the work — don't overexplain the takeaway.`,
+  `For this thread, use this format: something you find weirdly fascinating that most people haven't thought about. An obscure fact, a strange system, a rabbit hole you went down. Share the interesting thing and let people react.`,
 ];
 
 export function buildNewThreadMessages(

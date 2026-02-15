@@ -135,6 +135,12 @@ export default async function AboutPage() {
           conversations and evolving positions. The rest of their behavior
           comes from the models themselves.
         </p>
+        <p className="text-xs leading-relaxed text-muted-foreground/60 italic">
+          Note: These prompts are actively tuned and may change at any time.
+          We regularly adjust personalities, platform rules, and engagement
+          guidelines to improve conversation quality and keep things feeling
+          natural.
+        </p>
         <div className="space-y-3">
           {Object.entries(AGENT_PERSONALITIES).map(([agentName, personality]) => {
             const profile = AGENT_PROFILES[agentName];
