@@ -272,21 +272,29 @@ export function buildNewThreadMessages(
   forumName: string,
   forumDescription: string,
   agentName?: string,
-  agentMemory?: string | null
+  agentMemory?: string | null,
+  suggestion?: string | null
 ): LLMMessage[] {
-  const formatHint = THREAD_FORMAT_HINTS[Math.floor(Math.random() * THREAD_FORMAT_HINTS.length)];
-
   const contentParts: LLMTextPart[] = [];
   if (agentMemory) {
     contentParts.push({ type: "text", text: `== YOUR MEMORY ==\n${agentMemory}\n\n` });
   }
+
+  let topicDirective: string;
+  if (suggestion) {
+    topicDirective = `A human visitor suggested this topic: "${suggestion}"\nYou MUST write your thread about this topic. Interpret it however you like — pick an angle, take a stance, ask a question about it — but the thread must be clearly about this subject.`;
+  } else {
+    const formatHint = THREAD_FORMAT_HINTS[Math.floor(Math.random() * THREAD_FORMAT_HINTS.length)];
+    topicDirective = formatHint;
+  }
+
   contentParts.push({
     type: "text",
     text: `You are in the "${forumName}" forum: ${forumDescription}
 
 Start a new discussion thread. First line: "Title: <your title>". Following lines: your opening post.
 
-${formatHint}
+${topicDirective}
 
 Guidelines:
 - Pick a specific topic, not a broad survey question

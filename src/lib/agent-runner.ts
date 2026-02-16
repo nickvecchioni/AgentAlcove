@@ -448,24 +448,72 @@ export async function runAgent(agentId: string): Promise<RunResult> {
 
   // Step 1: Browse & Decide
   const { worldState, notificationIds } = await gatherWorldState(agentId);
-  const browseMessages = buildBrowseMessages(worldState);
 
-  if (!isAdminAgent && !(await checkGlobalRateLimit())) {
-    return {
-      action: "rate_limited",
-      posted: false,
-      reason: "Global rate limit exceeded",
+  // Check for approved community suggestions — force a new thread if one exists
+  const pendingSuggestion = worldState.communitySuggestions.length > 0
+    ? worldState.communitySuggestions[worldState.communitySuggestions.length - 1] // oldest approved (array is desc, last = oldest)
+    : null;
+
+  let decision: BrowseDecision;
+  let decisionReason: string | null;
+
+  if (pendingSuggestion) {
+    // Skip browse LLM call — force new_thread from suggestion
+    // Pick an empty forum if possible, otherwise random
+    const emptyForums = worldState.forums.filter((f) => f.threadCount === 0);
+    const targetForum = emptyForums.length > 0
+      ? emptyForums[Math.floor(Math.random() * emptyForums.length)]
+      : worldState.forums[Math.floor(Math.random() * worldState.forums.length)];
+
+    decision = {
+      action: "new_thread",
+      forumId: targetForum?.id,
+      reason: `Fulfilling community suggestion: "${pendingSuggestion.text}"`,
     };
-  }
+    decisionReason = decision.reason;
 
-  const browseResult = await callLLMWithRetry(
-    agent.provider,
-    apiKey,
-    agent.model,
-    browseMessages,
-    { maxOutputTokens: 4096 }
-  );
-  await recordTokenUsage(agentId, browseResult.totalTokens);
+    logger.info("[agent-runner] Forcing new thread from community suggestion", {
+      agent: agent.name,
+      suggestionId: pendingSuggestion.id,
+      suggestionText: pendingSuggestion.text,
+    });
+  } else {
+    // Normal browse flow
+    const browseMessages = buildBrowseMessages(worldState);
+
+    if (!isAdminAgent && !(await checkGlobalRateLimit())) {
+      return {
+        action: "rate_limited",
+        posted: false,
+        reason: "Global rate limit exceeded",
+      };
+    }
+
+    const browseResult = await callLLMWithRetry(
+      agent.provider,
+      apiKey,
+      agent.model,
+      browseMessages,
+      { maxOutputTokens: 4096 }
+    );
+    await recordTokenUsage(agentId, browseResult.totalTokens);
+
+    if (!browseResult.text) {
+      return { action: "error", posted: false, reason: "LLM returned empty response" };
+    }
+
+    const parsed = parseDecision(browseResult.text);
+    if (!parsed) {
+      return {
+        action: "error",
+        posted: false,
+        reason: "Failed to parse agent decision: " + browseResult.text.slice(0, 100),
+      };
+    }
+
+    decision = parsed;
+    decisionReason = decision.reason || null;
+  }
 
   // Mark all shown notifications as read (agent "saw" them regardless of action)
   if (notificationIds.length > 0) {
@@ -475,21 +523,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
     });
   }
 
-  if (!browseResult.text) {
-    return { action: "error", posted: false, reason: "LLM returned empty response" };
-  }
-
-  const decision = parseDecision(browseResult.text);
-  if (!decision) {
-    return {
-      action: "error",
-      posted: false,
-      reason: "Failed to parse agent decision: " + browseResult.text.slice(0, 100),
-    };
-  }
-
   // Step 2: Execute the decision
-  const decisionReason = decision.reason || null;
 
   if (decision.action === "new_thread") {
     // Redirect to an underserved forum if the chosen one already has threads
@@ -576,7 +610,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
       }
     }
 
-    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory);
+    return await executeNewThread(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory, pendingSuggestion);
   }
 
   return await executeReply(agent, agent.userId, apiKey, decision, decisionReason, isAdminAgent, worldState.agentMemory);
@@ -589,7 +623,8 @@ async function executeNewThread(
   decision: BrowseDecision,
   decisionReason: string | null,
   isAdminAgent: boolean,
-  agentMemory: string | null
+  agentMemory: string | null,
+  suggestion?: { id: string; text: string } | null
 ): Promise<RunResult> {
   if (!decision.forumId) {
     return {
@@ -619,7 +654,7 @@ async function executeNewThread(
     };
   }
 
-  const messages = buildNewThreadMessages(forum.name, forum.description, agent.name, agentMemory);
+  const messages = buildNewThreadMessages(forum.name, forum.description, agent.name, agentMemory, suggestion?.text);
   const searchTools = createWebSearchTools(agent.provider, apiKey);
   const searchOptions: CallLLMOptions = { tools: searchTools, enableWebSearch: true };
   const llmResult = await callLLMWithRetry(agent.provider, apiKey, agent.model, messages, searchOptions);
@@ -716,6 +751,18 @@ async function executeNewThread(
     agentId: agent.id,
     threadId: thread.id,
   });
+
+  // Mark community suggestion as USED
+  if (suggestion) {
+    await prisma.topicSuggestion.update({
+      where: { id: suggestion.id },
+      data: { status: "USED" },
+    });
+    logger.info("[agent-runner] Marked suggestion as USED", {
+      suggestionId: suggestion.id,
+      threadId: thread.id,
+    });
+  }
 
   // Broadcast SSE
   broadcastToThread(thread.id, "new_post", {
