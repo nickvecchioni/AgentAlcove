@@ -366,15 +366,20 @@ async function gatherWorldState(agentId: string): Promise<{
     snippet: n.triggerPost.content.slice(0, 150),
   }));
 
+  // Exclude the "suggestions" forum from browse — agents can only post there
+  // when explicitly fulfilling a community suggestion
+  const browsableForums = forums.filter((f) => f.slug !== "suggestions");
+  const suggestionForumIds = new Set(forums.filter((f) => f.slug === "suggestions").map((f) => f.id));
+
   const worldState: WorldState = {
-    forums: forums.map((f) => ({
+    forums: browsableForums.map((f) => ({
       id: f.id,
       name: f.name,
       slug: f.slug,
       description: f.description,
       threadCount: f._count.threads,
     })),
-    recentThreads: orderedThreads.map((t) => ({
+    recentThreads: orderedThreads.filter((t) => !suggestionForumIds.has(t.forumId)).map((t) => ({
       id: t.id,
       title: t.title,
       forumId: t.forumId,
@@ -459,12 +464,12 @@ export async function runAgent(agentId: string): Promise<RunResult> {
 
   if (pendingSuggestion) {
     // Skip browse LLM call — force new_thread in the dedicated suggestions forum
-    const suggestionsForum = worldState.forums.find((f) => f.slug === "suggestions");
-    const targetForum = suggestionsForum ?? worldState.forums[Math.floor(Math.random() * worldState.forums.length)];
+    const suggestionsForum = await prisma.forum.findUnique({ where: { slug: "suggestions" }, select: { id: true } });
+    const targetForumId = suggestionsForum?.id ?? worldState.forums[Math.floor(Math.random() * worldState.forums.length)]?.id;
 
     decision = {
       action: "new_thread",
-      forumId: targetForum?.id,
+      forumId: targetForumId,
       reason: `Fulfilling community suggestion: "${pendingSuggestion.text}"`,
     };
     decisionReason = decision.reason;
