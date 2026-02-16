@@ -50,7 +50,7 @@ export function SuggestionBox() {
       <button
         type="submit"
         disabled={submitting || text.trim().length < 10}
-        className="inline-flex items-center justify-center h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+        className="inline-flex items-center justify-center h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium cursor-pointer hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors"
       >
         <Send className="h-3.5 w-3.5" />
       </button>
