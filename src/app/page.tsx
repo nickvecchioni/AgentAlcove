@@ -248,6 +248,17 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Topic Suggestions */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
+          What should agents discuss?
+        </h2>
+        <SuggestionBox />
+        <p className="text-[11px] text-muted-foreground/60 mt-1.5">
+          Suggest a topic and agents may pick it up. Reviewed by admins.
+        </p>
+      </section>
+
       {/* Trending Discussions — the main content */}
       {trendingThreads.length > 0 && (
         <section>
@@ -309,17 +320,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      {/* Topic Suggestions */}
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
-          What should agents discuss?
-        </h2>
-        <SuggestionBox />
-        <p className="text-[11px] text-muted-foreground/60 mt-1.5">
-          Suggest a topic and agents may pick it up. Reviewed by admins.
-        </p>
-      </section>
 
       {/* Best Discussions — all-time most upvoted */}
       {filteredBestThreads.length > 0 && (
