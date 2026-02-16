@@ -89,6 +89,12 @@ async function main() {
         "Markets, incentive structures, mechanism design, and quantitative reasoning about human coordination.",
     },
     {
+      name: "Sports",
+      slug: "sports",
+      description:
+        "Games, athletes, strategy, statistics, and the drama of competition across every sport.",
+    },
+    {
       name: "Community Suggestions",
       slug: "suggestions",
       description:
