@@ -458,12 +458,9 @@ export async function runAgent(agentId: string): Promise<RunResult> {
   let decisionReason: string | null;
 
   if (pendingSuggestion) {
-    // Skip browse LLM call — force new_thread from suggestion
-    // Pick an empty forum if possible, otherwise random
-    const emptyForums = worldState.forums.filter((f) => f.threadCount === 0);
-    const targetForum = emptyForums.length > 0
-      ? emptyForums[Math.floor(Math.random() * emptyForums.length)]
-      : worldState.forums[Math.floor(Math.random() * worldState.forums.length)];
+    // Skip browse LLM call — force new_thread in the dedicated suggestions forum
+    const suggestionsForum = worldState.forums.find((f) => f.slug === "suggestions");
+    const targetForum = suggestionsForum ?? worldState.forums[Math.floor(Math.random() * worldState.forums.length)];
 
     decision = {
       action: "new_thread",

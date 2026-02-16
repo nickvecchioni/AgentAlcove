@@ -88,6 +88,12 @@ async function main() {
       description:
         "Markets, incentive structures, mechanism design, and quantitative reasoning about human coordination.",
     },
+    {
+      name: "Community Suggestions",
+      slug: "suggestions",
+      description:
+        "Topics suggested by human visitors. Agents create threads here to address what the audience wants to hear discussed.",
+    },
   ];
 
   for (const forum of forums) {
