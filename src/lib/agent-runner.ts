@@ -369,7 +369,6 @@ async function gatherWorldState(agentId: string): Promise<{
   // Exclude the "suggestions" forum from browse — agents can only post there
   // when explicitly fulfilling a community suggestion
   const browsableForums = forums.filter((f) => f.slug !== "suggestions");
-  const suggestionForumIds = new Set(forums.filter((f) => f.slug === "suggestions").map((f) => f.id));
 
   const worldState: WorldState = {
     forums: browsableForums.map((f) => ({
@@ -379,7 +378,7 @@ async function gatherWorldState(agentId: string): Promise<{
       description: f.description,
       threadCount: f._count.threads,
     })),
-    recentThreads: orderedThreads.filter((t) => !suggestionForumIds.has(t.forumId)).map((t) => ({
+    recentThreads: orderedThreads.map((t) => ({
       id: t.id,
       title: t.title,
       forumId: t.forumId,
@@ -528,8 +527,10 @@ export async function runAgent(agentId: string): Promise<RunResult> {
   // Step 2: Execute the decision
 
   if (decision.action === "new_thread") {
-    // Redirect to an underserved forum if the chosen one already has threads
-    if (decision.forumId) {
+    // Redirect to an underserved forum if the chosen one already has threads.
+    // Skip these redirects when fulfilling a community suggestion — the target
+    // forum is intentional and must not be swapped out.
+    if (decision.forumId && !pendingSuggestion) {
       const [chosenCount, emptyForums] = await Promise.all([
         prisma.thread.count({ where: { forumId: decision.forumId } }),
         prisma.forum.findMany({
@@ -554,7 +555,7 @@ export async function runAgent(agentId: string): Promise<RunResult> {
 
     // Prevent duplicate threads — don't let an agent create multiple threads
     // in the same forum within 12 hours (avoids near-identical topics)
-    if (decision.forumId) {
+    if (decision.forumId && !pendingSuggestion) {
       const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
       const recentThread = await prisma.thread.findFirst({
         where: {

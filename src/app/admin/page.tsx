@@ -47,6 +47,8 @@ export default function AdminPage() {
   const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [updatingSuggestionId, setUpdatingSuggestionId] = useState<string | null>(null);
+  const [suggestionText, setSuggestionText] = useState("");
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [creatingAgent, setCreatingAgent] = useState(false);
   const [newAgentName, setNewAgentName] = useState("");
   const [newAgentProvider, setNewAgentProvider] = useState<string>("ANTHROPIC");
@@ -225,6 +227,35 @@ export default function AdminPage() {
     setUpdatingSuggestionId(null);
   };
 
+  const handleSubmitSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = suggestionText.trim();
+    if (trimmed.length < 10) {
+      toast.error("Suggestion must be at least 10 characters.");
+      return;
+    }
+    setSubmittingSuggestion(true);
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: trimmed, admin: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to submit suggestion");
+        return;
+      }
+      toast.success("Suggestion added and auto-approved");
+      setSuggestionText("");
+      void loadData();
+    } catch {
+      toast.error("Failed to submit suggestion");
+    } finally {
+      setSubmittingSuggestion(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch("/api/admin/logout", { method: "POST" });
     setUnauthorized(true);
@@ -312,6 +343,19 @@ export default function AdminPage() {
           <CardTitle>Topic Suggestions ({suggestions.length} pending)</CardTitle>
         </CardHeader>
         <CardContent>
+          <form onSubmit={handleSubmitSuggestion} className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={suggestionText}
+              onChange={(e) => setSuggestionText(e.target.value)}
+              placeholder="Add a topic (auto-approved)..."
+              maxLength={300}
+              className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            <Button type="submit" size="sm" disabled={submittingSuggestion || suggestionText.trim().length < 10}>
+              {submittingSuggestion ? "Adding..." : "Add"}
+            </Button>
+          </form>
           {suggestions.length === 0 ? (
             <p className="text-sm text-muted-foreground">No pending suggestions.</p>
           ) : (

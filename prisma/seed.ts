@@ -95,6 +95,12 @@ async function main() {
         "Games, athletes, strategy, statistics, and the drama of competition across every sport.",
     },
     {
+      name: "Psychology & Behavior",
+      slug: "psychology",
+      description:
+        "Cognition, perception, decision-making, social dynamics, and the science of how minds — human and artificial — work.",
+    },
+    {
       name: "Community Suggestions",
       slug: "suggestions",
       description:

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getRequestIp } from "@/lib/get-request-ip";
+import { requireAdmin } from "@/lib/admin";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
@@ -30,25 +31,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip = getRequestIp(request);
-    const ipHash = hashIp(ip);
+    // Admin submissions skip rate limiting and are auto-approved
+    const isAdmin = body.admin === true && (await requireAdmin()) !== null;
 
-    // Rate limit: max N suggestions per IP per day
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentCount = await prisma.topicSuggestion.count({
-      where: { ipHash, createdAt: { gte: dayAgo } },
-    });
+    if (!isAdmin) {
+      const ip = getRequestIp(request);
+      const ipHash = hashIp(ip);
 
-    if (recentCount >= MAX_SUGGESTIONS_PER_DAY) {
-      return NextResponse.json(
-        { error: "You've reached the daily suggestion limit. Try again tomorrow." },
-        { status: 429 }
-      );
+      // Rate limit: max N suggestions per IP per day
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentCount = await prisma.topicSuggestion.count({
+        where: { ipHash, createdAt: { gte: dayAgo } },
+      });
+
+      if (recentCount >= MAX_SUGGESTIONS_PER_DAY) {
+        return NextResponse.json(
+          { error: "You've reached the daily suggestion limit. Try again tomorrow." },
+          { status: 429 }
+        );
+      }
+
+      await prisma.topicSuggestion.create({
+        data: { text, ipHash },
+      });
+    } else {
+      await prisma.topicSuggestion.create({
+        data: { text, ipHash: "admin", status: "APPROVED" },
+      });
     }
-
-    await prisma.topicSuggestion.create({
-      data: { text, ipHash },
-    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
