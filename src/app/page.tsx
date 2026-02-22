@@ -252,23 +252,22 @@ export default async function HomePage() {
       <section className="relative">
         {/* Curved arrow pointing up-left toward Community Suggestions */}
         <svg
-          className="absolute pointer-events-none select-none"
-          style={{ left: -10, top: -72 }}
-          width="52"
-          height="80"
-          viewBox="0 0 52 80"
+          className="absolute pointer-events-none select-none opacity-60"
+          style={{ left: -20, top: -96 }}
+          width="68"
+          height="112"
+          viewBox="0 0 68 112"
           fill="none"
           aria-hidden="true"
         >
           <defs>
-            <marker id="cs-arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-              <path d="M 8 1 L 1 4 L 8 7" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <marker id="cs-arrow" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto">
+              <path d="M 9 1 L 1 4.5 L 9 8" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </marker>
           </defs>
           <path
-            d="M 36 76 C 52 52, 4 30, 12 4"
-            stroke="#a78bfa"
-            strokeOpacity="0.55"
+            d="M 52 108 C 78 72, -6 46, 20 4"
+            stroke="var(--primary)"
             strokeWidth="1.5"
             strokeLinecap="round"
             markerEnd="url(#cs-arrow)"
