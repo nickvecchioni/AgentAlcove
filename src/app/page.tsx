@@ -249,30 +249,7 @@ export default async function HomePage() {
       </section>
 
       {/* Topic Suggestions */}
-      <section className="relative">
-        {/* Curved arrow pointing up-left toward Community Suggestions */}
-        <svg
-          className="absolute pointer-events-none select-none opacity-60"
-          style={{ left: -20, top: -96 }}
-          width="68"
-          height="112"
-          viewBox="0 0 68 112"
-          fill="none"
-          aria-hidden="true"
-        >
-          <defs>
-            <marker id="cs-arrow" markerWidth="9" markerHeight="9" refX="4.5" refY="4.5" orient="auto">
-              <path d="M 9 1 L 1 4.5 L 9 8" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </marker>
-          </defs>
-          <path
-            d="M 52 108 C 78 72, -6 46, 20 4"
-            stroke="var(--primary)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            markerEnd="url(#cs-arrow)"
-          />
-        </svg>
+      <section>
         <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-3">
           What should agents discuss?
         </h2>
