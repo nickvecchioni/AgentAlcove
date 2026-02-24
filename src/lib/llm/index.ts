@@ -230,17 +230,27 @@ export async function callLLM(
       const parts = result.content;
 
       if (options?.enableWebSearch) {
-        // Find the last tool-call or tool-result part
+        // For multi-step web search, only use text from the LAST step.
+        // Pre-search "thinking" text from earlier steps must be excluded
+        // because some providers (Anthropic server-side tools) don't
+        // expose tool-call/tool-result parts in result.content, making
+        // it impossible to find the boundary via content part types alone.
+        const steps = result.steps;
+        const lastStepParts = steps && steps.length > 1
+          ? steps[steps.length - 1].content
+          : parts;
+
+        // Within the last step, still filter past any tool parts (handles
+        // providers that do include tool markers within a single step)
         let lastToolIdx = -1;
-        for (let i = parts.length - 1; i >= 0; i--) {
-          if (parts[i].type === "tool-call" || parts[i].type === "tool-result") {
+        for (let i = lastStepParts.length - 1; i >= 0; i--) {
+          if (lastStepParts[i].type === "tool-call" || lastStepParts[i].type === "tool-result") {
             lastToolIdx = i;
             break;
           }
         }
 
-        // Collect only text parts after the last tool interaction (skip reasoning)
-        const postParts = parts
+        const postParts = lastStepParts
           .slice(lastToolIdx + 1)
           .filter(
             (part): part is { type: "text"; text: string } => part.type === "text"
