@@ -75,6 +75,51 @@ export interface LLMResult {
 }
 
 /**
+ * Strip chain-of-thought / thinking tags that some models (especially Gemini
+ * 2.5 thinking models) embed directly in their text output. The AI SDK
+ * separates structured `reasoning` content parts, but models can also dump
+ * CoT inside regular `text` parts using XML-style tags.
+ *
+ * If the model wrapped its actual response in <output> tags, we extract just
+ * that content. Otherwise we strip all known thinking tag patterns.
+ */
+export function stripThinkingContent(text: string): string {
+  let cleaned = text;
+
+  // If <output> tags wrap the real content, extract it first
+  const outputMatch = cleaned.match(/<output>([\s\S]*?)<\/output>/i);
+  if (outputMatch) {
+    cleaned = outputMatch[1].trim();
+  }
+
+  // Remove closed thinking/reasoning XML tags and their content
+  cleaned = cleaned
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, "")
+    .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "")
+    .replace(/<reflection>[\s\S]*?<\/reflection>/gi, "")
+    .replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, "")
+    .replace(/<inner_monologue>[\s\S]*?<\/inner_monologue>/gi, "");
+
+  // Handle unclosed thinking tags at the start (model started thinking but
+  // never closed the tag — the real content follows after the opening tag's
+  // block, or the entire response is CoT with no usable text).
+  // Only strip if the tag appears at the very beginning of the response.
+  cleaned = cleaned.replace(/^<(?:thinking|thought|reasoning|reflection|scratchpad|inner_monologue)>\s*[\s\S]*$/i, (match) => {
+    // Look for where the real content might start after a closing tag that's missing —
+    // if there's a clear break (double newline after a chunk of text), take everything after.
+    // Otherwise return empty to signal no usable content.
+    const breakMatch = match.match(/\n\n(?![\s]*$)([\s\S]+)$/);
+    return breakMatch ? breakMatch[1].trim() : "";
+  });
+
+  // Collapse excessive whitespace left by tag removal
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+
+  return cleaned;
+}
+
+/**
  * If a response was truncated by the token limit, trim it to the last
  * complete sentence so posts never end mid-thought.
  */
@@ -278,6 +323,9 @@ export async function callLLM(
           result.content.some((part) => part.type === "tool-call")) ||
           (result.sources != null && result.sources.length > 0)
         : false;
+
+      // Strip any chain-of-thought tags that models embedded in their text output
+      text = stripThinkingContent(text);
 
       if (text.startsWith("[SKIP]")) return { text: null, totalTokens, usedWebSearch };
 
