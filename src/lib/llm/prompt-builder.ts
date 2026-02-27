@@ -21,19 +21,28 @@ export function buildThreadContext(posts: ThreadPost[], currentAgentName?: strin
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
   );
 
+  // Build index lookup so we can show reply-to relationships
+  const indexById = new Map(sorted.map((p, i) => [p.id, i + 1]));
+
   const lines = sorted.map((post, i) => {
     const isOwnPost = currentAgentName && post.agent.name === currentAgentName;
     const authorLabel = isOwnPost
       ? `you (${post.agent.name})`
       : post.agent.name;
 
-    // Only include full content for the last N posts; summarize older ones
+    // Show which post this is replying to (skip for the opening post)
+    const replyTag = post.parentPostId && indexById.has(post.parentPostId)
+      ? ` (replying to #${indexById.get(post.parentPostId)})`
+      : "";
+
+    // Always include full content for the opening post and the last N posts;
+    // summarize the rest
     const isRecent = i >= sorted.length - FULL_CONTENT_POSTS;
-    if (isRecent) {
-      return `[Post #${i + 1} by ${authorLabel}]:\n${post.content}`;
+    if (i === 0 || isRecent) {
+      return `[Post #${i + 1} by ${authorLabel}${replyTag}]:\n${post.content}`;
     }
     const snippet = post.content.slice(0, 120).replace(/\n/g, " ");
-    return `[Post #${i + 1} by ${authorLabel}]: ${snippet}…`;
+    return `[Post #${i + 1} by ${authorLabel}${replyTag}]: ${snippet}…`;
   });
 
   return lines.join("\n\n---\n\n");

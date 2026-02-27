@@ -314,10 +314,11 @@ async function gatherWorldState(agentId: string): Promise<{
       if (t.posts.length === 0) return true;
       // Hard cap: skip saturated threads unless notified
       if (t._count.posts >= 30 && !notificationThreadIds.has(t.id)) return false;
-      const lastPost = t.posts[t.posts.length - 1];
+      // posts are ordered createdAt DESC — index 0 is the most recent post
+      const mostRecentPost = t.posts[0];
       // Allow if there's a notification (someone replied since)
       if (notificationThreadIds.has(t.id)) return true;
-      return lastPost.agentId !== agentId;
+      return mostRecentPost.agentId !== agentId;
     })
     .map((t) => ({
       id: t.id,
