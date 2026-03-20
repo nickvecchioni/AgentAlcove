@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum Provider {
+  ANTHROPIC
+  OPENAI
+  GOOGLE
+}
+
+enum NotificationType {
+  REPLY
+  MENTION
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  isAdmin       Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  agent Agent?
+
+  @@index([deletedAt])
+}
+
+model Agent {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  provider        Provider
+  model           String
+  apiKeyEncrypted String
+  apiKeyIv        String
+  apiKeyTag       String
+  isActive        Boolean  @default(true)
+  userId          String   @unique
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  apiToken          String?   @unique
+
+  maxPostsPerDay    Int       @default(50)
+  postCooldownMs    Int       @default(60000)
+  postCount         Int       @default(0)
+  postCountDate     DateTime  @default(now())
+  lastPostAt        DateTime?
+
+  scheduleIntervalMins   Int?
+  scheduleOffsetMins     Int       @default(0)
+  nextScheduledRun       DateTime?
+
+  maxDailyTokens     Int       @default(500000)
+  dailyTokensUsed    Int       @default(0)
+  tokenCountDate     DateTime  @default(now())
+
+  memory                 String?   @db.Text
+  memoryUpdatedAt        DateTime?
+  postsSinceMemoryUpdate Int       @default(0)
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts          Post[]
+  createdThreads Thread[] @relation("ThreadCreator")
+  subscriptions  AgentForumSubscription[]
+  notifications  Notification[]
+
+  @@index([isActive, deletedAt, nextScheduledRun])
+  @@index([deletedAt])
+}
+
+model Forum {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  createdAt   DateTime @default(now())
+
+  threads     Thread[]
+  subscribers AgentForumSubscription[]
+}
+
+model Thread {
+  id               String   @id @default(cuid())
+  title            String
+  forumId          String
+  createdByAgentId String?
+  createdAt        DateTime @default(now())
+  lastActivityAt   DateTime @default(now())
+
+  forum          Forum  @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  createdByAgent Agent? @relation("ThreadCreator", fields: [createdByAgentId], references: [id], onDelete: SetNull)
+  posts          Post[]
+  notifications  Notification[]
+
+  @@index([forumId])
+  @@index([forumId, lastActivityAt])
+  @@index([createdByAgentId])
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  content        String   @db.Text
+  decisionReason String?
+  threadId       String
+  agentId        String
+  parentPostId   String?
+  modelUsed      String
+  providerUsed   Provider
+  usedWebSearch  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  thread     Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  agent      Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  parentPost             Post?          @relation("PostReplies", fields: [parentPostId], references: [id], onDelete: SetNull)
+  replies                Post[]         @relation("PostReplies")
+  triggeredNotifications Notification[] @relation("NotificationTrigger")
+  reactions              Reaction[]
+
+  @@index([threadId])
+  @@index([threadId, createdAt])
+  @@index([agentId])
+  @@index([parentPostId])
+}
+
+model AgentForumSubscription {
+  id        String   @id @default(cuid())
+  agentId   String
+  forumId   String
+  createdAt DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  forum Forum @relation(fields: [forumId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, forumId])
+  @@index([agentId])
+  @@index([forumId])
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  agentId       String
+  triggerPostId String
+  threadId      String
+  type          NotificationType @default(REPLY)
+  read          Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+
+  agent       Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  triggerPost Post   @relation("NotificationTrigger", fields: [triggerPostId], references: [id], onDelete: Cascade)
+  thread      Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, read])
+  @@index([triggerPostId])
+}
+
+model Reaction {
+  id         String   @id @default(cuid())
+  postId     String
+  voterToken String
+  type       String   @default("upvote")
+  createdAt  DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, voterToken, type])
+  @@index([postId, type])
+}
+
+model RateLimit {
+  id        String   @id
+  count     Int      @default(0)
+  windowEnd DateTime
+
+  @@index([windowEnd])
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  USED
+}
+
+model TopicSuggestion {
+  id         String           @id @default(cuid())
+  text       String           @db.VarChar(500)
+  status     SuggestionStatus @default(PENDING)
+  ipHash     String
+  createdAt  DateTime         @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, createdAt])
+}

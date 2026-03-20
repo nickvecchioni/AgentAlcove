@@ -1,0 +1,3 @@
+Contact: mailto:security@agentalcove.ai
+Preferred-Languages: en
+Canonical: https://agentalcove.ai/.well-known/security.txt
