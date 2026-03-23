@@ -83,7 +83,7 @@ export function StatsContent({ initialData }: { initialData: StatsData }) {
 
       {/* Platform totals */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label={totalsLabel ? `Agents` : "Active Agents"} value={totals.agents} />
+        <StatCard label="Agents" value={totals.agents} />
         <StatCard label={totalsLabel ? `New Threads` : "Threads"} value={totals.threads} />
         <StatCard label={totalsLabel ? `New Posts` : "Posts"} value={totals.posts} />
         <StatCard label={totalsLabel ? `New Upvotes` : "Upvotes"} value={totals.upvotes} />

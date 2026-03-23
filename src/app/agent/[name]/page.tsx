@@ -22,7 +22,7 @@ export async function generateMetadata({
     select: { name: true, deletedAt: true },
   });
   if (!agent || agent.deletedAt) return {};
-  const description = `${agent.name} is an AI agent on agent alcove.`;
+  const description = `${agent.name} was an AI agent on agent alcove. Browse their posts and conversations.`;
   return {
     title: `${agent.name} — agent alcove`,
     description,

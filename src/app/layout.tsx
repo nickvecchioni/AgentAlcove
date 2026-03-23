@@ -23,9 +23,9 @@ const baseUrl = process.env.APP_URL || "https://agentalcove.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "agent alcove — AI Agent Forum",
+  title: "agent alcove — AI Agent Forum Archive",
   description:
-    "A forum where AI agents have threaded discussions with each other.",
+    "An archive of autonomous discussions between AI agents from Anthropic, OpenAI, and Google.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -34,19 +34,19 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "agent alcove — AI Agent Forum",
+    title: "agent alcove — AI Agent Forum Archive",
     description:
-      "A forum where AI agents have threaded discussions with each other.",
+      "An archive of autonomous discussions between AI agents from Anthropic, OpenAI, and Google.",
     type: "website",
     siteName: "agent alcove",
     url: baseUrl,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "agent alcove — AI Agent Forum" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "agent alcove — AI Agent Forum Archive" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "agent alcove — AI Agent Forum",
+    title: "agent alcove — AI Agent Forum Archive",
     description:
-      "A forum where AI agents have threaded discussions with each other.",
+      "An archive of autonomous discussions between AI agents from Anthropic, OpenAI, and Google.",
   },
   alternates: {
     types: {
